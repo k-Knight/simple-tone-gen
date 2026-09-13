@@ -2,48 +2,88 @@ window.ComponentModule_Knob = {
     render(targetObj, key, label, min, max, step, isLog, unit, syncCallback, appStateInstance, customColor = 'cyan') {
         const icons = window.ResourceModule_Icons;
 
+        const stepStr = String(step);
+        const stepParts = stepStr.split('.');
+        const stepDecimals = stepParts.length > 1 ? stepParts[1].length : 0;
+
         const getRotation = () => {
-            let v = targetObj[key], pct;
-            if (key === 'superDetune') {
-                pct = v <= 1.5 ? (v / 1.5) * 0.5 : 0.5 + ((v - 1.5) / (20 - 1.5)) * 0.5;
-                pct = Math.max(0, Math.min(1, pct));
-            } else if (isLog) {
-                pct = (Math.log(v) - Math.log(min)) / (Math.log(max) - Math.log(min));
+            let v = targetObj[key];
+            let pct;
+            
+            if (isLog) {
+                const safeMin = min <= 0 ? 0.001 : min;
+                const safeV = v <= 0 ? safeMin : v;
+                pct = (Math.log(safeV) - Math.log(safeMin)) / (Math.log(max) - Math.log(safeMin));
             } else {
                 pct = (v - min) / (max - min);
             }
+            
+            pct = Math.max(0, Math.min(1, pct));
             return (pct * 270) - 135;
+        };
+
+        const getDisplayPrecision = (value) => {
+            if (isLog) {
+                const absCalc = Math.abs(value);
+                if (absCalc >= 1000) return 0;
+                if (absCalc > 100) return 1;
+                if (absCalc > 10) return 2;
+                return 3;
+            }
+            return stepDecimals;
         };
 
         const setupDrag = (e) => {
             if (e.button === 2) return;
             let startY = e.pageY || e.touches.pageY;
             let startVal = targetObj[key];
-            let startPct = key === 'superDetune'
-                ? (startVal <= 1.5 ? (startVal / 1.5) * 0.5 : 0.5 + ((startVal - 1.5) / (20 - 1.5)) * 0.5)
-                : (isLog ? (Math.log(startVal) - Math.log(min)) / (Math.log(max) - Math.log(min)) : (startVal - min) / (max - min));
+            
+            let startPct;
+            if (isLog) {
+                const safeMin = min <= 0 ? 0.001 : min;
+                const safeVal = startVal <= 0 ? safeMin : startVal;
+                startPct = (Math.log(safeVal) - Math.log(safeMin)) / (Math.log(max) - Math.log(safeMin));
+            } else {
+                startPct = (startVal - min) / (max - min);
+            }
 
             const containerNode = e.currentTarget.closest('.knob-container-block');
             const pointerNode = containerNode.querySelector('.dial-pointer');
             const inputNode = containerNode.querySelector('.knob-numeric-input');
+            const textDisplayNode = containerNode.querySelector('.knob-text-display');
 
             const move = (me) => {
                 let currentY = me.pageY || (me.touches ? me.touches.pageY : startY);
-                let pctDelta = (startY - currentY) / 200;
+                
+                const sensitivityDenominator = me.shiftKey ? 2000 : 200;
+                let pctDelta = (startY - currentY) / sensitivityDenominator;
                 let nextPct = Math.max(0, Math.min(1, startPct + pctDelta));
 
-                if (key === 'superDetune') {
-                    targetObj[key] = nextPct <= 0.5 ? parseFloat(((nextPct / 0.5) * 1.5).toFixed(4)) : parseFloat((1.5 + ((nextPct - 0.5) / 0.5) * (20 - 1.5)).toFixed(4));
-                } else if (isLog) {
-                    targetObj[key] = Math.round(Math.exp(Math.log(min) + nextPct * (Math.log(max) - Math.log(min))));
+                let precision = getDisplayPrecision(startVal);
+
+                if (isLog) {
+                    const safeMin = min <= 0 ? 0.001 : min;
+                    let calculated = Math.exp(Math.log(safeMin) + nextPct * (Math.log(max) - Math.log(safeMin)));
+                    precision = getDisplayPrecision(calculated);
+                    targetObj[key] = parseFloat(calculated.toFixed(precision));
                 } else {
-                    targetObj[key] = parseFloat((min + (nextPct * (max - min))).toFixed(4));
+                    let rawVal = min + (nextPct * (max - min));
+                    targetObj[key] = parseFloat(rawVal.toFixed(precision));
                 }
                 
                 syncCallback();
                 
                 if (pointerNode) pointerNode.style.transform = `rotate(${getRotation()}deg)`;
-                if (inputNode) inputNode.value = targetObj[key];
+                if (inputNode) inputNode.value = targetObj[key].toFixed(precision);
+                
+                if (textDisplayNode) {
+                    const roundedMode = Math.round(targetObj[key]);
+                    if (key === 'spreadMode') {
+                        textDisplayNode.textContent = roundedMode === 0 ? '1 Voice' : '2 Voices';
+                    } else if (key === 'superMode') {
+                        textDisplayNode.textContent = roundedMode === 0 ? 'Both' : (roundedMode === 1 ? 'Above' : 'Below');
+                    }
+                }
             };
 
             const stop = () => {
@@ -51,6 +91,7 @@ window.ComponentModule_Knob = {
                 window.removeEventListener('mouseup', stop);
                 window.removeEventListener('touchmove', move);
                 window.removeEventListener('touchend', stop);
+                appStateInstance.render();
             };
 
             window.addEventListener('mousemove', move);
@@ -61,25 +102,29 @@ window.ComponentModule_Knob = {
 
         const reset = (e) => {
             if (e) e.preventDefault();
-            targetObj[key] = targetObj._defaults && targetObj._defaults[key] !== undefined ? targetObj._defaults[key] : min;
-            syncCallback();
-            
-            const containerNode = e.currentTarget.closest('.knob-container-block');
-            if (containerNode) {
-                const pointerNode = containerNode.querySelector('.dial-pointer');
-                const inputNode = containerNode.querySelector('.knob-numeric-input');
-                if (pointerNode) pointerNode.style.transform = `rotate(${getRotation()}deg)`;
-                if (inputNode) inputNode.value = targetObj[key];
+            if (targetObj._defaults && targetObj._defaults[key] !== undefined) {
+                targetObj[key] = targetObj._defaults[key];
+            } else {
+                targetObj[key] = min < 0 && max > 0 ? 0 : min;
             }
+            syncCallback();
+            appStateInstance.render();
         };
 
-        const isSuperMode = key === 'superMode';
-        const isEffect = targetObj.type === 'super' || customColor === 'purple';
+        const isSuperMode = key === 'superMode' || key === 'spreadMode';
         
-        const colorClass = isEffect ? 'text-purple-400 focus:border-purple-500/50 knob-numeric-input' : 'text-cyan-400 focus:border-cyan-500/50 knob-numeric-input';
-        const pointerColorClass = isEffect ? 'bg-purple-400' : 'bg-cyan-400';
-        const resetHoverColorClass = isEffect ? 'hover:text-purple-400' : 'hover:text-cyan-400';
-        const accentBg = isEffect ? 'bg-zinc-950/40' : 'bg-zinc-950/20';
+        const activeTheme = customColor === 'purple' ? 'purple' : 'cyan';
+
+        const colorClass = activeTheme === 'purple' 
+            ? 'text-purple-400 focus:border-purple-500/50 knob-numeric-input' 
+            : 'text-cyan-400 focus:border-cyan-500/50 knob-numeric-input';
+            
+        const pointerColorClass = activeTheme === 'purple' ? 'bg-purple-400' : 'bg-cyan-400';
+        const textLabelColorClass = activeTheme === 'purple' ? 'text-purple-300' : 'text-cyan-300';
+        const resetHoverColorClass = activeTheme === 'purple' ? 'hover:text-purple-400' : 'hover:text-cyan-400';
+        const accentBg = activeTheme === 'purple' ? 'bg-zinc-950/40' : 'bg-zinc-950/20';
+
+        const initPrecision = getDisplayPrecision(targetObj[key]);
 
         return html`
             <div class="knob-container-block flex flex-col items-center p-3 ${accentBg} border border-zinc-800/40 rounded-xl relative group">
@@ -93,19 +138,28 @@ window.ComponentModule_Knob = {
                 </div>
                 
                 ${isSuperMode ? html`
-                    <div class="w-full text-center text-[10px] text-purple-300 font-bold font-mono mt-2 py-0.5 bg-zinc-900 border border-zinc-800 rounded select-none uppercase">
-                        ${Math.round(targetObj[key]) === 0 ? 'Both' : (Math.round(targetObj[key]) === 1 ? 'Above' : 'Below')}
+                    <div class="knob-text-display w-full text-center text-[10px] ${textLabelColorClass} font-bold font-mono mt-2 py-0.5 bg-zinc-900 border border-zinc-800 rounded select-none uppercase">
+                        ${key === 'spreadMode' 
+                            ? (Math.round(targetObj[key]) === 0 ? '1 Voice' : '2 Voices')
+                            : (Math.round(targetObj[key]) === 0 ? 'Both' : (Math.round(targetObj[key]) === 1 ? 'Above' : 'Below'))
+                        }
                     </div>
                 ` : html`
-                    <input type="number" min="${min}" max="${max}" step="${step}" value="${targetObj[key]}"
+                    <input type="number" min="${min}" max="${max}" step="${step}" value="${targetObj[key].toFixed(initPrecision)}"
                            onKeydown=${e => { if(e.key==='Enter') e.currentTarget.blur(); }}
                            onInput=${e => { 
-                               targetObj[key] = parseFloat(e.currentTarget.value) || min; 
+                               targetObj[key] = parseFloat(parseFloat(e.currentTarget.value).toFixed(initPrecision)); 
                                syncCallback(); 
                                const ptr = e.currentTarget.closest('.knob-container-block').querySelector('.dial-pointer');
                                if (ptr) ptr.style.transform = `rotate(${getRotation()}deg)`;
                            }}
-                           onBlur=${e => { isEffect ? appStateInstance.validateFxAndSync(appStateInstance.generators.find(g=>g.effects.includes(targetObj)), targetObj) : appStateInstance.validateAndSync(targetObj); }}
+                           onBlur=${e => { 
+                               if (targetObj.type === 'unison' || targetObj.type === 'timespread') {
+                                   appStateInstance.validateFxAndSync(appStateInstance.generators.find(g => g.effects.includes(targetObj)), targetObj);
+                               } else {
+                                   appStateInstance.validateAndSync(targetObj);
+                               }
+                           }}
                            class="w-full mt-2 bg-zinc-900 border border-zinc-800 text-center font-mono text-xs py-0.5 rounded ${colorClass} focus:outline-none" />
                 `}
             </div>

@@ -73,29 +73,57 @@
                         if (!s || s.loudness <= 0.0001) continue;
 
                         let t = evalTime - s.timeShift;
-                        let componentValue = 0;
-                        const superFx = gen.effects ? gen.effects.find(fx => fx.type === 'super') : null;
+                        
+                        let componentLeft = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * t, t, s.frequency);
+                        let componentRight = componentLeft;
 
-                        if (superFx) {
-                            componentValue += workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * t, t, s.frequency);
-                            const mode = Math.round(superFx.superMode);
+                        const unisonFx = gen.effects ? gen.effects.find(fx => fx.type === 'unison') : null;
+                        if (unisonFx) {
+                            const mode = Math.round(unisonFx.superMode);
+                            let unisonMix = componentLeft;
                             if (mode === 0 || mode === 1) {
                                 let fUpper = s.frequency + s.superDetune;
-                                componentValue += workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * fUpper * t, t, fUpper) * s.superLoudness;
+                                unisonMix += workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * fUpper * t, t, fUpper) * s.superLoudness;
                             }
                             if (mode === 0 || mode === 2) {
                                 let fLower = s.frequency - s.superDetune;
-                                componentValue += workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * fLower * t, t, fLower) * s.superLoudness;
+                                unisonMix += workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * fLower * t, t, fLower) * s.superLoudness;
                             }
-                            componentValue /= (1.0 + (mode === 0 ? 2 : 1) * s.superLoudness);
-                        } else {
-                            componentValue = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * t, t, s.frequency);
+                            unisonMix /= (1.0 + (mode === 0 ? 2 : 1) * s.superLoudness);
+                            componentLeft = unisonMix;
+                            componentRight = unisonMix;
                         }
 
-                        if (gen.isInverted) componentValue = -componentValue;
-                        renderMixSum += componentValue * s.loudness;
+                        const timeSpreadFx = gen.effects ? gen.effects.find(fx => fx.type === 'timespread') : null;
+                        if (timeSpreadFx) {
+                            const mode = Math.round(timeSpreadFx.spreadMode);
+                            let subMix = 0;
+
+                            if (mode === 0) {
+                                let tOffset = t - s.spreadTime;
+                                subMix = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * tOffset, tOffset, s.frequency) * s.spreadLoudness;
+                            } else {
+                                let tPlus = t - s.spreadTime;
+                                let tMinus = t + s.spreadTime;
+                                let v1 = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * tPlus, tPlus, s.frequency);
+                                let v2 = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * tMinus, tMinus, s.frequency);
+                                subMix = ((v1 + v2) / 2.0) * s.spreadLoudness;
+                            }
+
+                            componentLeft = (componentLeft + subMix) / (1.0 + s.spreadLoudness);
+                            componentRight = (componentRight + subMix) / (1.0 + s.spreadLoudness);
+                        }
+
+                        if (gen.isInverted) {
+                            componentLeft = -componentLeft;
+                            componentRight = -componentRight;
+                        }
+
+                        const mixedMonoChannel = (componentLeft + componentRight) / 2.0;
+                        renderMixSum += mixedMonoChannel * s.loudness;
                     }
-                    visualOutput[v] = renderMixSum;
+                    
+                    visualOutput[v] = isNaN(renderMixSum) ? 0.0 : renderMixSum;
                 }
 
                 self.postMessage({ 

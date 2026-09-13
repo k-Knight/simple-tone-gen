@@ -51,14 +51,19 @@ class ThreadedAudioEngine {
             self.AudioWorker.processScopeWindow = ${window.AudioWorker.processScopeWindow.toString()};
         `;
 
-        const blob = new Blob([
+        // Safely extract the raw string function source code from our module
+        const workerSourceCode = window.AudioWorkerTextModule.functionBody.toString();
+        const cleanedDspCodeString = workerSourceCode.substring(workerSourceCode.indexOf('{') + 1, workerSourceCode.lastIndexOf('}'));
+
+        // FIXED: Unified single blob assignment to prevent duplicate declaration syntax errors
+        const workerBlob = new Blob([
             compiledDspString, "\n",
             compiledScopeString, "\n",
-            window.AudioWorkerTextModule.code
+            cleanedDspCodeString
         ], { type: 'application/javascript' });
 
-        this.worker = new Worker(URL.createObjectURL(blob));
-        console.log("Worker Created");
+        this.worker = new Worker(URL.createObjectURL(workerBlob));
+        console.log("Worker Created Successfully via Code Extract");
 
         this.worker.onmessage = (e) => {
             if (!e.data) return;
