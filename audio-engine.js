@@ -12,9 +12,11 @@ class ThreadedAudioEngine {
         this.recordedLeft = [];
         this.recordedRight = [];
         this.maxRecordSamples = 0;
-        this.currentRecordSeconds = 2; 
+        this.currentRecordSeconds = 2;
 
         this.isFlushing = false;
+        this.latestScopeFrame = new Float32Array(800);
+        this.scopeFrameQueue = [];
     }
 
     init() {
@@ -31,16 +33,45 @@ class ThreadedAudioEngine {
 
         this.analyser = this.ctx.createAnalyser();
         this.analyser.fftSize = 2048;
-        this.analyser.connect(this.masterGain); 
+        this.analyser.connect(this.masterGain);
 
-        const blob = new Blob([window.AudioWorkerTextModule.code], { type: 'application/javascript' });
+        const compiledDspString = `
+            self.AudioWorker = self.AudioWorker || {};
+            self.AudioWorker.getWaveSample = ${window.AudioWorker.getWaveSample.toString()};
+        `;
+
+        const compiledScopeString = `
+            self.AudioWorker = self.AudioWorker || {};
+            self.AudioWorker.scopeState = "WAIT_HALF_PERIOD";
+            self.AudioWorker.scopeTargetSamples = 0;
+            self.AudioWorker.scopeSampleCounter = 0;
+            self.AudioWorker.scopeStateCaptureStartTime = 0;
+            self.AudioWorker.VISUAL_POINTS = 800;
+            self.AudioWorker.resetScopeState = ${window.AudioWorker.resetScopeState.toString()};
+            self.AudioWorker.processScopeWindow = ${window.AudioWorker.processScopeWindow.toString()};
+        `;
+
+        const blob = new Blob([
+            compiledDspString, "\n",
+            compiledScopeString, "\n",
+            window.AudioWorkerTextModule.code
+        ], { type: 'application/javascript' });
+
         this.worker = new Worker(URL.createObjectURL(blob));
+        console.log("Worker Created");
 
         this.worker.onmessage = (e) => {
+            if (!e.data) return;
+
+            if (e.data.action === 'scope-update') {
+                this.scopeFrameQueue.push(e.data.visualData);
+                return;
+            }
+
             const { leftChannel, rightChannel } = e.data;
             this.leftQueue.push(leftChannel);
             this.rightQueue.push(rightChannel);
-            
+
             if (this.isFlushing) {
                 this.isFlushing = false;
                 if (this.masterGain && this.ctx) {
@@ -89,7 +120,7 @@ class ThreadedAudioEngine {
 
     startRecording(seconds) {
         this.init();
-        this.currentRecordSeconds = seconds; 
+        this.currentRecordSeconds = seconds;
         this.recordedLeft = [];
         this.recordedRight = [];
         this.maxRecordSamples = seconds * 48000;
@@ -107,12 +138,12 @@ class ThreadedAudioEngine {
         writeString(8, 'WAVE');
         writeString(12, 'fmt ');
         view.setUint32(16, 16, true);
-        view.setUint16(20, 3, true); 
-        view.setUint16(22, 1, true); 
+        view.setUint16(20, 3, true);
+        view.setUint16(22, 1, true);
         view.setUint32(24, 48000, true);
         view.setUint32(28, 48000 * 4, true);
         view.setUint16(32, 4, true);
-        view.setUint16(34, 32, true); 
+        view.setUint16(34, 32, true);
         writeString(36, 'data');
         view.setUint32(40, totalSamples * 4, true);
 
@@ -147,10 +178,10 @@ class ThreadedAudioEngine {
         if (this.worker) {
             this.init();
 
-            this.worker.postMessage({ 
-                action: 'update', 
-                id: id, 
-                params: JSON.parse(JSON.stringify(p)) 
+            this.worker.postMessage({
+                action: 'update',
+                id: id,
+                params: JSON.parse(JSON.stringify(p))
             });
         }
     }

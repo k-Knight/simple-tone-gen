@@ -33,7 +33,6 @@ window.AppModule = {
                 const canvas = document.getElementById('scopeCanvas');
                 if (!canvas) { requestAnimationFrame(() => this.drawOscilloscope()); return; }
                 const ctx = canvas.getContext('2d');
-                const dataArray = new Float32Array(2048);
 
                 const render = () => {
                     requestAnimationFrame(render);
@@ -45,6 +44,7 @@ window.AppModule = {
 
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     
+                    // Center reference line
                     ctx.strokeStyle = '#1e1e24'; ctx.lineWidth = 1;
                     ctx.beginPath(); ctx.moveTo(0, canvas.height/2); ctx.lineTo(canvas.width, canvas.height/2); ctx.stroke();
 
@@ -54,8 +54,17 @@ window.AppModule = {
                         return;
                     }
 
-                    if (audio.analyser) {
-                        audio.analyser.getFloatTimeDomainData(dataArray);
+                    if (audio.scopeFrameQueue && audio.scopeFrameQueue.length > 0) {
+                        if (audio.scopeFrameQueue.length > 2) {
+                            audio.latestScopeFrame = audio.scopeFrameQueue[audio.scopeFrameQueue.length - 1];
+                            audio.scopeFrameQueue = []; 
+                        } else {
+                            audio.latestScopeFrame = audio.scopeFrameQueue.shift();
+                        }
+                    }
+
+                    if (audio.latestScopeFrame) {
+                        const dataArray = audio.latestScopeFrame;
 
                         let maxVal = 0;
                         for (let i = 0; i < dataArray.length; i++) {
@@ -65,60 +74,15 @@ window.AppModule = {
                         let visualGain = maxVal > 0.001 ? (0.75 / maxVal) : 1.0;
                         if (visualGain > 15) visualGain = 15;
 
-                        const currentGens = this.generators || [];
-                        const activeGen = currentGens.find(g => !g.isMuted);
-                        const triggerFrequency = activeGen ? parseFloat(activeGen.frequency) : 50;
-                        
-                        const samplesPerPeriod = 48000 / (triggerFrequency || 50);
-                        let totalWindowSamples = Math.round(samplesPerPeriod * 2);
-                        
-                        if (totalWindowSamples > dataArray.length - 200) {
-                            totalWindowSamples = dataArray.length - 200;
-                        }
-                        if (totalWindowSamples < 64) {
-                            totalWindowSamples = 64;
-                        }
-
-                        const negativeThreshold = -0.05 * maxVal;
-                        const positiveThreshold = 0.05 * maxVal;
-                        
-                        let lockStartIndex = 0;
-                        let state = 0;
-
-                        for (let i = 0; i < dataArray.length - totalWindowSamples; i++) {
-                            if (state === 0) {
-                                if (dataArray[i] < negativeThreshold) {
-                                    state = 1;
-                                }
-                            } else if (state === 1) {
-                                if (dataArray[i] > positiveThreshold) {
-                                    lockStartIndex = i;
-                                    break;
-                                }
-                            }
-                        }
-
                         ctx.strokeStyle = '#38f8e2'; ctx.lineWidth = 2.5; 
                         ctx.beginPath();
 
-                        const displayPoints = 800; 
-                        const sliceWidth = canvas.width / displayPoints;
+                        const displayPoints = dataArray.length; 
+                        const sliceWidth = canvas.width / (displayPoints - 1);
                         let x = 0;
 
                         for (let i = 0; i < displayPoints; i++) {
-                            const sampleFraction = i / displayPoints;
-                            const exactDataIdx = lockStartIndex + (sampleFraction * totalWindowSamples);
-
-                            const indexBase = Math.floor(exactDataIdx);
-                            const indexFrac = exactDataIdx - indexBase;
-
-                            if (indexBase + 1 >= dataArray.length) break;
-
-                            const y1 = dataArray[indexBase];
-                            const y2 = dataArray[indexBase + 1];
-                            const blendedSample = y1 + indexFrac * (y2 - y1);
-
-                            const sampleValue = blendedSample * visualGain;
+                            const sampleValue = -dataArray[i] * visualGain;
                             let y = canvas.height / 2 + (sampleValue * (canvas.height / 2));
                             
                             if (isNaN(y)) y = canvas.height / 2;
