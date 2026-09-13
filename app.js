@@ -1,141 +1,46 @@
 const audio = new window.AudioEngineModule.AudioEngine();
 
-window.AppModule = {
-    container() {
-        return {
-            generators: [],
-            waveTypes: ['sine', 'sawtooth', 'square', 'triangle'],
-            masterVolume: 0.5,
-            recordDuration: 2, 
-            isRecording: false,
+function h(type, props, ...children) {
+    props = props || {};
+    if (typeof type === 'function') return type(props, children);
+    
+    const isSVG = ['svg', 'path', 'line', 'polyline', 'rect', 'circle', 'polygon', 'g'].includes(type);
+    const el = isSVG 
+        ? document.createElementNS("http://www.w3.org/2000/svg", type)
+        : document.createElement(type);
+    
+    Object.keys(props).forEach(k => {
+        if (k.startsWith('on') && typeof props[k] === 'function') {
+            el.addEventListener(k.toLowerCase().substring(2), props[k]);
+        } else if (k === 'class') {
+            if (isSVG) el.setAttribute('class', props[k]); else el.className = props[k];
+        } else if (k === 'style' && typeof props[k] === 'object') {
+            Object.assign(el.style, props[k]);
+        } else if (k === 'innerHTML') {
+            el.innerHTML = props[k];
+        } else if (typeof props[k] === 'boolean') {
+            if (props[k]) el.setAttribute(k, ''); else el.removeAttribute(k);
+        } else {
+            el.setAttribute(k, props[k]);
+        }
+    });
 
-            init() {
-                this.drawOscilloscope();
-                window.addEventListener('record-finished', () => {
-                    this.isRecording = false;
-                    audio.exportWav();
-                });
-            },
-            updateMaster() { 
-                audio.init(); 
-                if(audio.worker) {
-                    const now = audio.ctx.currentTime;
-                    audio.masterGain.gain.cancelScheduledValues(now);
-                    audio.masterGain.gain.linearRampToValueAtTime(this.masterVolume, now + 0.005);
-                } 
-            },
-            triggerRecord() {
-                if (this.isRecording) return;
-                this.isRecording = true;
-                audio.startRecording(this.recordDuration);
-            },
-            drawOscilloscope() {
-                const canvas = document.getElementById('scopeCanvas');
-                if (!canvas) { requestAnimationFrame(() => this.drawOscilloscope()); return; }
-                const ctx = canvas.getContext('2d');
+    children.flat(Infinity).forEach(c => {
+        if (c === null || c === undefined) return;
+        if (c instanceof Node) {
+            el.appendChild(c);
+        } else {
+            if (isSVG && typeof c === 'string' && !c.trim()) return;
+            el.appendChild(document.createTextNode(String(c)));
+        }
+    });
+    
+    return el;
+}
 
-                const render = () => {
-                    requestAnimationFrame(render);
-                    
-                    if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
-                        canvas.width = canvas.clientWidth;
-                        canvas.height = canvas.clientHeight;
-                    }
+window.html = htm.bind(h);
 
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Center reference line
-                    ctx.strokeStyle = '#1e1e24'; ctx.lineWidth = 1;
-                    ctx.beginPath(); ctx.moveTo(0, canvas.height/2); ctx.lineTo(canvas.width, canvas.height/2); ctx.stroke();
-
-                    if (audio.isFlushing) {
-                        ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2.5;
-                        ctx.beginPath(); ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
-                        return;
-                    }
-
-                    if (audio.scopeFrameQueue && audio.scopeFrameQueue.length > 0) {
-                        if (audio.scopeFrameQueue.length > 2) {
-                            audio.latestScopeFrame = audio.scopeFrameQueue[audio.scopeFrameQueue.length - 1];
-                            audio.scopeFrameQueue = []; 
-                        } else {
-                            audio.latestScopeFrame = audio.scopeFrameQueue.shift();
-                        }
-                    }
-
-                    if (audio.latestScopeFrame) {
-                        const dataArray = audio.latestScopeFrame;
-
-                        let maxVal = 0;
-                        for (let i = 0; i < dataArray.length; i++) {
-                            let absVal = Math.abs(dataArray[i]);
-                            if (absVal > maxVal) maxVal = absVal;
-                        }
-                        let visualGain = maxVal > 0.001 ? (0.75 / maxVal) : 1.0;
-                        if (visualGain > 15) visualGain = 15;
-
-                        ctx.strokeStyle = '#38f8e2'; ctx.lineWidth = 2.5; 
-                        ctx.beginPath();
-
-                        const displayPoints = dataArray.length; 
-                        const sliceWidth = canvas.width / (displayPoints - 1);
-                        let x = 0;
-
-                        for (let i = 0; i < displayPoints; i++) {
-                            const sampleValue = -dataArray[i] * visualGain;
-                            let y = canvas.height / 2 + (sampleValue * (canvas.height / 2));
-                            
-                            if (isNaN(y)) y = canvas.height / 2;
-
-                            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                            x += sliceWidth;
-                        }
-                        ctx.stroke();
-                    }
-                };
-                render();
-            },
-
-            renderOscillator() { return window.ComponentModule_Oscillator.render(); },
-            renderKnob(k, l, min, max, s, log, u) { return window.ComponentModule_RegularKnob.render(k, l, min, max, s, log, u); },
-            renderEffectKnob(fx, k, l, min, max, s, log, u) { return window.ComponentModule_EffectKnob.render(fx, k, l, min, max, s, log, u); },
-            addGenerator() {
-                audio.init();
-                const id = crypto.randomUUID();
-                const initialConfig = { id, type: 'sine', isInverted: false, frequency: 50, loudness: 0.25, pan: 0.0, timeShift: 0.0, isMuted: false, effects: [] };
-                initialConfig._defaults = Object.assign({}, initialConfig);
-                this.generators.push(initialConfig); audio.addGenerator(id); this.sync(id);
-            },
-            removeGenerator(id) { audio.removeGenerator(id); this.generators = this.generators.filter(g => g.id !== id); },
-            addEffect(genId) {
-                audio.init(); const target = this.generators.find(g => g.id === genId);
-                if (target && target.effects.length === 0) {
-                    const fxId = crypto.randomUUID();
-                    const fxConfig = { id: fxId, type: 'super', superDetune: 1.5, superLoudness: 0.5, superMode: 0 };
-                    fxConfig._defaults = Object.assign({}, fxConfig); target.effects.push(fxConfig); this.sync(genId);
-                }
-            },
-            removeEffect(genId, fxId) { const target = this.generators.find(g => g.id === genId); if (target) { target.effects = target.effects.filter(fx => fx.id !== fxId); this.sync(genId); } },
-            sync(id) { 
-                const arr = this.generators || window.Alpine.$data(document.getElementById('app-root')).generators; 
-                const inst = arr.find(g => g.id === id); 
-                if (inst) {
-                    audio.updateGenerator(id, inst); 
-                }
-            },
-            validateAndSync(g) {
-                g.frequency = Math.max(20, Math.min(20000, parseFloat(g.frequency) || 50));
-                g.loudness = Math.max(0, Math.min(1, parseFloat(g.loudness) || 0));
-                g.pan = Math.max(-1, Math.min(1, parseFloat(g.pan) || 0));
-                g.timeShift = Math.max(0, Math.min(0.05, parseFloat(g.timeShift) || 0));
-                this.sync(g.id);
-            },
-            validateFxAndSync(g, fx) {
-                fx.superDetune = Math.max(0, Math.min(1000, parseFloat(fx.superDetune) || 0));
-                fx.superLoudness = Math.max(0, Math.min(2, parseFloat(fx.superLoudness) || 0));
-                fx.superMode = Math.max(0, Math.min(2, Math.round(parseFloat(fx.superMode)) || 0));
-                this.sync(g.id);
-            }
-        };
-    }
-};
+any(document).on('DOMContentLoaded', () => {
+    window.AppState = window.AppStateModule.create(audio);
+    window.AppState.init();
+});
