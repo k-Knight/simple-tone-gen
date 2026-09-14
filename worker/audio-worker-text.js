@@ -98,7 +98,11 @@ window.AudioWorkerTextModule = {
                             if (localT > period) localT = doublePeriod - localT;
                             if (localT < cutoff) localT = cutoff;
 
-                            warpedT = (period * cutoff) / localT;
+                            // Calculate the raw unscaled wet hyperbolic time vector
+                            let rawWarpedT = (period * cutoff) / localT;
+                            
+                            // PROPORTIONAL TIME CROSSFADE: Scale the time baseline linearly by intensity right at the root
+                            warpedT = rawWarpedT * warpFx.warpIntensity + baseT * (1.0 - warpFx.warpIntensity);
                             isWarped = true;
                         }
 
@@ -106,10 +110,11 @@ window.AudioWorkerTextModule = {
                         let voiceSampleLeft = 0;
 
                         if (activeMultipliers.length > 0) {
+                            // Seed sample now smoothly blends to 100% dry as warpIntensity approaches 0
                             let currentSample = getWaveSample(
                                 gen.type,
-                                2 * Math.PI * s.frequency * (isWarped ? warpedT : baseT),
-                                (isWarped ? warpedT : baseT),
+                                2 * Math.PI * s.frequency * warpedT,
+                                warpedT,
                                 s.frequency
                             );
 
@@ -122,15 +127,13 @@ window.AudioWorkerTextModule = {
                                             let subLocalT = Math.abs(subT) % (2 * warpFx.warpPeriod);
                                             if (subLocalT > warpFx.warpPeriod) subLocalT = (2 * warpFx.warpPeriod) - subLocalT;
                                             if (subLocalT < warpFx.zeroCutoff) subLocalT = warpFx.zeroCutoff;
-                                            let subWarpedT = (warpFx.warpPeriod * warpFx.zeroCutoff) / subLocalT;
                                             
-                                            // Calculate the fully warped wet sub-voice sample
-                                            let wetSubSample = getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
-                                            // Calculate the clean dry sub-voice sample
-                                            let drySubSample = getWaveSample(type, angle, subT, freq);
+                                            let rawSubWarpedT = (warpFx.warpPeriod * warpFx.zeroCutoff) / subLocalT;
                                             
-                                            // FIXED: Blend between dry and wet sub-voices using the modulation depth parameter
-                                            return wetSubSample * warpFx.warpIntensity + drySubSample * (1.0 - warpFx.warpIntensity);
+                                            // Scale sub-voice timelines proportionally straight to the depth parameter
+                                            let finalSubWarpedT = rawSubWarpedT * warpFx.warpIntensity + subT * (1.0 - warpFx.warpIntensity);
+                                            
+                                            return getWaveSample(type, 2 * Math.PI * freq * finalSubWarpedT, finalSubWarpedT, freq);
                                         }
                                         return getWaveSample(type, angle, subT, freq);
                                     }, gen.type);
@@ -138,15 +141,8 @@ window.AudioWorkerTextModule = {
                             }
                             voiceSampleLeft = currentSample;
                         } else {
-                            let finalT = isWarped ? warpedT : baseT;
-                            let rawSample = getWaveSample(gen.type, 2 * Math.PI * s.frequency * finalT, finalT, s.frequency);
-
-                            if (isWarped && warpFx) {
-                                voiceSampleLeft = rawSample * warpFx.warpIntensity +
-                                                   getWaveSample(gen.type, 2 * Math.PI * s.frequency * baseT, baseT, s.frequency) * (1.0 - warpFx.warpIntensity);
-                            } else {
-                                voiceSampleLeft = rawSample;
-                            }
+                            // Direct standalone carrier wave math path
+                            voiceSampleLeft = getWaveSample(gen.type, 2 * Math.PI * s.frequency * warpedT, warpedT, s.frequency);
                         }
 
                         let voiceSampleRight = voiceSampleLeft;

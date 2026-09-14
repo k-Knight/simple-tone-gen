@@ -104,7 +104,10 @@
                             if (localT > period) localT = doublePeriod - localT;
                             if (localT < cutoff) localT = cutoff;
 
-                            warpedT = (period * cutoff) / localT;
+                            let rawWarpedT = (period * cutoff) / localT;
+                            
+                            // Proportional timeline crossfade for the visual tracer
+                            warpedT = rawWarpedT * warpFx.warpIntensity + t * (1.0 - warpFx.warpIntensity);
                             isWarped = true;
                         }
 
@@ -114,8 +117,8 @@
                         if (activeMultipliers.length > 0) {
                             let currentSample = workerScope.AudioWorker.getWaveSample(
                                 gen.type,
-                                2 * Math.PI * s.frequency * (isWarped ? warpedT : t),
-                                (isWarped ? warpedT : t),
+                                2 * Math.PI * s.frequency * warpedT,
+                                warpedT,
                                 s.frequency
                             );
 
@@ -128,12 +131,11 @@
                                             let subLocalT = Math.abs(subT) % (2 * warpFx.warpPeriod);
                                             if (subLocalT > warpFx.warpPeriod) subLocalT = (2 * warpFx.warpPeriod) - subLocalT;
                                             if (subLocalT < warpFx.zeroCutoff) subLocalT = warpFx.zeroCutoff;
-                                            let subWarpedT = (warpFx.warpPeriod * warpFx.zeroCutoff) / subLocalT;
                                             
-                                            let wetSubSample = workerScope.AudioWorker.getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
-                                            let drySubSample = workerScope.AudioWorker.getWaveSample(type, angle, subT, freq);
+                                            let rawSubWarpedT = (warpFx.warpPeriod * warpFx.zeroCutoff) / subLocalT;
+                                            let finalSubWarpedT = rawSubWarpedT * warpFx.warpIntensity + subT * (1.0 - warpFx.warpIntensity);
                                             
-                                            return wetSubSample * warpFx.warpIntensity + drySubSample * (1.0 - warpFx.warpIntensity);
+                                            return workerScope.AudioWorker.getWaveSample(type, 2 * Math.PI * freq * finalSubWarpedT, finalSubWarpedT, freq);
                                         }
                                         return workerScope.AudioWorker.getWaveSample(type, angle, subT, freq);
                                     }, gen.type);
@@ -141,15 +143,7 @@
                             }
                             componentLeft = currentSample;
                         } else {
-                            let finalT = isWarped ? warpedT : t;
-                            let rawSample = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * finalT, finalT, s.frequency);
-
-                            if (isWarped && warpFx) {
-                                componentLeft = rawSample * warpFx.warpIntensity +
-                                                workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * t, t, s.frequency) * (1.0 - warpFx.warpIntensity);
-                            } else {
-                                componentLeft = rawSample;
-                            }
+                            componentLeft = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * warpedT, warpedT, s.frequency);
                         }
 
                         let componentRight = componentLeft;

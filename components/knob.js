@@ -24,13 +24,10 @@ window.ComponentModule_Knob = {
         const initialValue = targetObj[key];
 
         const knobEl = html`
-            <!-- FIXED: Added w-full max-w-[120px] mx-auto so the card shrinks neatly into tighter spaces -->
-            <div class="knob-container-block flex flex-col items-center p-3 ${accentBg} border border-zinc-800/40 rounded-xl relative group w-full max-w-[120px] mx-auto">
-                <!-- FIXED: Shifted absolute button top/left inwards slightly (top-1.5 left-1.5) and trimmed padding/size (p-0.5 w-5 h-5) so it matches the text edge tightly -->
+            <div class="knob-container-block flex flex-col items-center p-3 ${accentBg} border border-zinc-800/40 rounded-xl relative group w-full max-w-[180px] mx-auto">
                 <button class="reset-knob-btn absolute top-1.5 left-1.5 p-0.5 text-zinc-500 ${resetHoverColorClass} bg-zinc-900/50 hover:bg-zinc-800 rounded border border-zinc-800 transition-all opacity-40 group-hover:opacity-100 flex items-center justify-center cursor-pointer z-10 w-5 h-5" title="Reset to default">
                     ${icons.reset}
                 </button>
-                <!-- FIXED: Removed pl-4 and replaced with pl-5 pr-1 so the label centers perfectly inside the new narrower box without spilling out -->
                 <span class="text-xs text-zinc-400 font-medium mb-2 pl-5 pr-1 self-stretch text-center select-none truncate" title="${label}">${label}</span>
 
                 <div class="knob-dial-surface w-12 h-12 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center relative cursor-ns-resize shadow-inner select-none flex-shrink-0">

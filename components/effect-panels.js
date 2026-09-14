@@ -18,12 +18,13 @@ window.ComponentModule_EffectPanels = {
                         ${icons.remove}
                     </button>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <!-- FIXED: Replaced grid-cols-1 sm:grid-cols-3 with an auto-fit minmax configuration -->
+                <div class="grid grid-cols-[repeat(auto-fit,minmax(90px,1fr))] gap-3 justify-center">
                     ${plugin.knobs.map(k => {
                         const finalMin = k.min === 'dynamic' ? -T : k.min;
                         const finalMax = k.max === 'dynamic' ? T : k.max;
                         const finalStep = k.step === 'dynamic' ? dynamicStep : k.step;
-
+                        
                         return knobRenderer(fx, k.key, k.label, finalMin, finalMax, finalStep, k.isLog, k.unit, () => appStateInstance.sync(gen.id), plugin.theme);
                     })}
                 </div>
