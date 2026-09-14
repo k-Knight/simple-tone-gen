@@ -21,7 +21,6 @@ window.ComponentModule_KnobController = {
             if (absCalc > 10) return 2;
             return 3;
         }
-
         return stepDecimals;
     },
 
@@ -44,7 +43,7 @@ window.ComponentModule_KnobController = {
 
         if (pointerNode) pointerNode.style.transform = `rotate(${deg}deg)`;
         if (inputNode) inputNode.value = val.toFixed(prec);
-
+        
         if (textDisplayNode) {
             const roundedMode = Math.round(val);
             if (key === 'spreadMode') {
@@ -55,17 +54,26 @@ window.ComponentModule_KnobController = {
         }
     },
 
-    // --- 3. Interaction Mechanics / Event Binder ---
+    // --- 3. Mobile-Optimized Interaction Mechanics ---
     bindInteractions(knobEl, targetObj, key, min, max, step, isLog, stepDecimals, syncCallback) {
         const dialSurface = any('.knob-dial-surface', knobEl);
         const inputNode = knobEl.querySelector('.knob-numeric-input');
         const resetBtn = any('.reset-knob-btn', knobEl);
 
+        // MOBILE OPTIMIZATION: Enforce strict touch isolation style rules directly on the surface [1]
+        if (dialSurface && dialSurface.run) {
+            dialSurface.run(el => { el.style.touchAction = 'none'; }); [1]
+        }
+
         const setupDrag = (e) => {
             if (e.button === 2) return;
-            let startY = e.pageY || (e.touches ? e.touches.pageY : e.pageY);
+            
+            // Extract coordinates safely supporting both Mouse Events and native Multi-Touch lists [1]
+            const touchTarget = e.touches && e.touches.length > 0 ? e.touches[0] : e; [1]
+            let startX = touchTarget.pageX; [1]
+            let startY = touchTarget.pageY; [1]
             let startVal = targetObj[key];
-
+            
             let startPct;
             if (isLog && min > 0 && max > 0) {
                 const safeMin = min <= 0 ? 0.001 : min;
@@ -76,14 +84,25 @@ window.ComponentModule_KnobController = {
             }
 
             const move = (mev) => {
-                let currentY = mev.pageY || (mev.touches ? mev.touches.pageY : mev.pageY);
+                // Prevent mobile scroll snapping behavior entirely during active manipulation loops [1]
+                if (mev.cancelable) mev.preventDefault(); [1]
 
-                const sensitivity = mev.shiftKey ? 4000 : 400;
-                let pctDelta = (startY - currentY) / sensitivity;
+                const currentTouch = mev.touches && mev.touches.length > 0 ? mev.touches[0] : mev; [1]
+                let currentX = currentTouch.pageX; [1]
+                let currentY = currentTouch.pageY; [1]
+                
+                let deltaX = currentX - startX;
+                let deltaY = startY - currentY; 
+
+                // Sensitivity constants tuned for touch gestures
+                const coarseSensitivity = 300.0; 
+                const fineSensitivity = 2500.0;  
+
+                let pctDelta = (deltaY / coarseSensitivity) + (deltaX / fineSensitivity);
                 let nextPct = Math.max(0, Math.min(1, startPct + pctDelta));
 
                 let calculated = this.calculateValueFromPct(nextPct, min, max, isLog);
-
+                
                 if (step && step > 0) {
                     const stepsCount = Math.round((calculated - min) / step);
                     calculated = min + (stepsCount * step);
@@ -92,12 +111,11 @@ window.ComponentModule_KnobController = {
 
                 let precision = this.getDisplayPrecision(calculated, stepDecimals, isLog);
                 targetObj[key] = parseFloat(calculated.toFixed(precision));
-
-                // This now securely evaluates to your actual callback function block!
+                
                 if (typeof syncCallback === 'function') {
                     syncCallback();
                 }
-
+                
                 this.updateUIElements(knobEl, targetObj[key], key, min, max, isLog, stepDecimals);
             };
 
@@ -110,26 +128,27 @@ window.ComponentModule_KnobController = {
 
             window.addEventListener('mousemove', move);
             window.addEventListener('mouseup', stop);
-            window.addEventListener('touchmove', move, { passive: false });
+            // passive: false is mandatory to allow preventDefault() to un-trap mobile scroll gestures [1]
+            window.addEventListener('touchmove', move, { passive: false }); [1]
             window.addEventListener('touchend', stop);
         };
 
         const handleReset = (e) => {
             if (e) e.preventDefault();
-            targetObj[key] = targetObj._defaults && targetObj._defaults[key] !== undefined
-                ? targetObj._defaults[key]
+            targetObj[key] = targetObj._defaults && targetObj._defaults[key] !== undefined 
+                ? targetObj._defaults[key] 
                 : (min < 0 && max > 0 ? 0 : min);
-
+            
             if (typeof syncCallback === 'function') {
                 syncCallback();
             }
-
+            
             this.updateUIElements(knobEl, targetObj[key], key, min, max, isLog, stepDecimals);
         };
 
-        // Attach Event Bindings
+        // Bind interactive triggers safely across desktop and mobile devices
         dialSurface.on('mousedown', setupDrag);
-        dialSurface.on('touchstart', setupDrag);
+        dialSurface.on('touchstart', setupDrag); [1]
         dialSurface.on('contextmenu', handleReset);
         resetBtn.on('click', handleReset);
 
@@ -138,11 +157,11 @@ window.ComponentModule_KnobController = {
             any(inputNode).on('input', e => {
                 let v = parseFloat(e.currentTarget.value) || min;
                 targetObj[key] = Math.max(min, Math.min(max, v));
-
+                
                 if (typeof syncCallback === 'function') {
                     syncCallback();
                 }
-
+                
                 this.updateUIElements(knobEl, targetObj[key], key, min, max, isLog, stepDecimals);
             });
             any(inputNode).on('blur', () => {
