@@ -14,12 +14,13 @@ window.ComponentModule_Knob = {
         }
 
         const isSuperMode = key === 'superMode' || key === 'spreadMode';
-        const activeTheme = customColor === 'purple' ? 'purple' : 'cyan';
-        const colorClass = activeTheme === 'purple' ? 'text-purple-400' : 'text-cyan-400';
-        const pointerColorClass = activeTheme === 'purple' ? 'bg-purple-400' : 'bg-cyan-400';
-        const textLabelColorClass = activeTheme === 'purple' ? 'text-purple-300' : 'text-cyan-300';
-        const resetHoverColorClass = activeTheme === 'purple' ? 'hover:text-purple-400' : 'hover:text-cyan-400';
-        const accentBg = activeTheme === 'purple' ? 'bg-zinc-950/40' : 'bg-zinc-950/20';
+        
+        const colorClass = `text-${customColor}-400`;
+        const pointerColorClass = `bg-${customColor}-400`;
+        const textLabelColorClass = `text-${customColor}-300`;
+        const resetHoverColorClass = `hover:text-${customColor}-400`;
+        const accentBg = `bg-zinc-950/20`;
+        
         const initialValue = targetObj[key];
 
         const knobEl = html`

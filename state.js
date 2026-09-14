@@ -56,6 +56,8 @@ window.AppStateModule = {
                     fxConfig = { id: fxId, type: 'unison', superDetune: 1.5, superLoudness: 0.75, superMode: 0 };
                 } else if (effectType === 'timespread') {
                     fxConfig = { id: fxId, type: 'timespread', spreadTime: 0.0, spreadLoudness: 0.75, spreadMode: 0 };
+                } else if (effectType === 'hyperbolic') {
+                    fxConfig = { id: fxId, type: 'hyperbolic', warpPeriod: 0.15, zeroCutoff: 0.03, warpIntensity: 0.75 };
                 }
 
                 fxConfig._defaults = Object.assign({}, fxConfig);
@@ -103,6 +105,10 @@ window.AppStateModule = {
                     let rawLoudness = Math.max(0, Math.min(2, parseFloat(fx.spreadLoudness) || 0));
                     fx.spreadLoudness = parseFloat(rawLoudness.toFixed(2));
                     fx.spreadMode = Math.max(0, Math.min(1, Math.round(parseFloat(fx.spreadMode)) || 0));
+                } else if (fx.type === 'hyperbolic') {
+                    fx.warpPeriod = parseFloat(Math.max(0.01, Math.min(10.0, parseFloat(fx.warpPeriod) || 0.15)).toFixed(3));
+                    fx.zeroCutoff = parseFloat(Math.max(0.001, Math.min(0.5, parseFloat(fx.zeroCutoff) || 0.030)).toFixed(4));
+                    fx.warpIntensity = parseFloat(Math.max(0.0, Math.min(1.0, parseFloat(fx.warpIntensity) || 0.75)).toFixed(2));
                 }
                 this.sync(g.id);
             }

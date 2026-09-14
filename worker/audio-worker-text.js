@@ -1,6 +1,5 @@
 window.AudioWorkerTextModule = {
-    // Stored directly as a pure string literal. No more string manipulation syntax bugs!
-    workerSourceCode: `
+    workerBody() {
         const getWaveSample = self.AudioWorker.getWaveSample;
         const resetScopeState = self.AudioWorker.resetScopeState;
         const processScopeWindow = self.AudioWorker.processScopeWindow;
@@ -14,17 +13,12 @@ window.AudioWorkerTextModule = {
         self.onmessage = function(e) {
             const { action, id, params, bufferLength } = e.data;
 
-            if (action === 'add') {
-                generators.set(id, params);
-                phaseTimeline = 0;
-                smoothState.delete(id);
-                resetScopeState(generators, sampleRate);
-            } else if (action === 'update') {
-                if (generators.has(id)) {
+            if (action === 'add' || action === 'update') {
+                if (action === 'add' || generators.has(id)) {
                     generators.set(id, params);
                     phaseTimeline = 0;
                     smoothState.delete(id);
-                    threadMuteTimeoutSamples = bufferLength * 3;
+                    if (action === 'update') threadMuteTimeoutSamples = bufferLength * 3;
                     resetScopeState(generators, sampleRate);
                 }
             } else if (action === 'remove') {
@@ -72,22 +66,84 @@ window.AudioWorkerTextModule = {
 
                         if (s.loudness <= 0.0001) continue;
 
-                        const baseT = currentTime - s.timeShift;
-                        let voiceSampleLeft = getWaveSample(gen.type, 2 * Math.PI * s.frequency * baseT, baseT, s.frequency);
-                        let voiceSampleRight = voiceSampleLeft;
+                        let baseT = currentTime - s.timeShift;
 
-                        // --- UNIFIED MODULAR PLUGIN EFFECT LOOP ---
+                        // --- EXTRACT AND CATEGORIZE EFFECTS ---
+                        let activeWarpers = [];
+                        let activeMultipliers = [];
+
                         if (gen.effects) {
                             for (let j = 0; j < gen.effects.length; j++) {
                                 const fx = gen.effects[j];
-                                const plugin = self.AudioWorker.Plugins ? self.AudioWorker.Plugins[fx.type] : null;
-                                if (plugin) {
-                                    voiceSampleLeft = plugin.process(voiceSampleLeft, baseT, s, fx, getWaveSample, gen.type);
-                                    voiceSampleRight = voiceSampleLeft;
+                                if (fx.type === 'hyperbolic') {
+                                    activeWarpers.push(fx);
+                                } else {
+                                    activeMultipliers.push(fx);
                                 }
                             }
                         }
-                        // --- END MODULAR PLUGIN EFFECT LOOP ---
+
+                        // --- TIME BASE PRE-WARP CALCULATION ---
+                        let warpedT = baseT;
+                        let isWarped = false;
+                        let warpFx = null;
+                        
+                        if (activeWarpers.length > 0) {
+                            warpFx = activeWarpers[0];
+                            const period = warpFx.warpPeriod;
+                            const cutoff = warpFx.zeroCutoff;
+                            
+                            const doublePeriod = 2 * period;
+                            let localT = Math.abs(baseT) % doublePeriod;
+                            if (localT > period) localT = doublePeriod - localT;
+                            if (localT < cutoff) localT = cutoff;
+                            
+                            warpedT = (period * cutoff) / localT;
+                            isWarped = true;
+                        }
+
+                        // --- GENERATE AND DISPATCH AUDIO SAMPLES ---
+                        let voiceSampleLeft = 0;
+                        
+                        if (activeMultipliers.length > 0) {
+                            let currentSample = getWaveSample(
+                                gen.type, 
+                                2 * Math.PI * s.frequency * (isWarped ? warpedT : baseT), 
+                                (isWarped ? warpedT : baseT), 
+                                s.frequency
+                            );
+                            
+                            for (let j = 0; j < activeMultipliers.length; j++) {
+                                const fx = activeMultipliers[j];
+                                const plugin = self.AudioWorker.Plugins ? self.AudioWorker.Plugins[fx.type] : null;
+                                if (plugin) {
+                                    currentSample = plugin.process(currentSample, baseT, s, fx, (type, angle, subT, freq) => {
+                                        if (isWarped && warpFx) {
+                                            let subLocalT = Math.abs(subT) % (2 * warpFx.warpPeriod);
+                                            if (subLocalT > warpFx.warpPeriod) subLocalT = (2 * warpFx.warpPeriod) - subLocalT;
+                                            if (subLocalT < warpFx.zeroCutoff) subLocalT = warpFx.zeroCutoff;
+                                            let subWarpedT = (warpFx.warpPeriod * warpFx.zeroCutoff) / subLocalT;
+                                            
+                                            return getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
+                                        }
+                                        return getWaveSample(type, angle, subT, freq);
+                                    }, gen.type);
+                                }
+                            }
+                            voiceSampleLeft = currentSample;
+                        } else {
+                            let finalT = isWarped ? warpedT : baseT;
+                            let rawSample = getWaveSample(gen.type, 2 * Math.PI * s.frequency * finalT, finalT, s.frequency);
+                            
+                            if (isWarped && warpFx) {
+                                voiceSampleLeft = rawSample * warpFx.warpIntensity + 
+                                                   getWaveSample(gen.type, 2 * Math.PI * s.frequency * baseT, baseT, s.frequency) * (1.0 - warpFx.warpIntensity);
+                            } else {
+                                voiceSampleLeft = rawSample;
+                            }
+                        }
+                        
+                        let voiceSampleRight = voiceSampleLeft;
 
                         if (gen.isInverted) {
                             voiceSampleLeft = -voiceSampleLeft;
@@ -115,5 +171,5 @@ window.AudioWorkerTextModule = {
                 self.postMessage({ leftChannel, rightChannel }, [leftChannel.buffer, rightChannel.buffer]);
             }
         };
-    `
+    }
 };

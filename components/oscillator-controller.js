@@ -1,6 +1,7 @@
 window.ComponentModule_OscillatorController = {
     setWaveTypeUI(cardEl, activeWave) {
-        any('.wave-type-btn', cardEl).run(b => {
+        const buttons = cardEl.querySelectorAll('.wave-type-btn');
+        buttons.forEach(b => {
             const isActive = b.getAttribute('data-wave') === activeWave;
             b.setAttribute('data-active', isActive ? 'true' : 'false');
         });
@@ -20,12 +21,11 @@ window.ComponentModule_OscillatorController = {
     setMuteUI(cardEl, isMuted) {
         const btn = cardEl.querySelector('.mute-toggle-btn');
         const dot = cardEl.querySelector('.mute-dot');
-        const cardSurreal = any(cardEl);
 
         if (isMuted) {
-            cardSurreal.classAdd('opacity-40', 'grayscale-[30%]');
+            cardEl.classList.add('opacity-40', 'grayscale-[30%]');
         } else {
-            cardSurreal.classRemove('opacity-40', 'grayscale-[30%]');
+            cardEl.classList.remove('opacity-40', 'grayscale-[30%]');
         }
 
         if (btn) btn.setAttribute('data-active', isMuted ? 'true' : 'false');
@@ -33,43 +33,55 @@ window.ComponentModule_OscillatorController = {
     },
 
     bindInteractions(cardEl, gen, appStateInstance) {
-        const cardSurreal = any(cardEl);
-
-        any('.wave-type-btn', cardEl).on('click', e => {
-            const wave = e.currentTarget.getAttribute('data-wave');
-            gen.type = wave;
-            appStateInstance.sync(gen.id);
-            this.setWaveTypeUI(cardEl, wave);
+        const waveButtons = cardEl.querySelectorAll('.wave-type-btn');
+        waveButtons.forEach(btn => {
+            btn.addEventListener('click', e => {
+                const wave = e.currentTarget.getAttribute('data-wave');
+                gen.type = wave;
+                appStateInstance.sync(gen.id);
+                this.setWaveTypeUI(cardEl, wave);
+            });
         });
 
-        any('.invert-checkbox', cardEl).on('change', e => {
-            gen.isInverted = e.currentTarget.checked;
-            appStateInstance.sync(gen.id);
-            this.setInvertUI(cardEl, gen.isInverted);
-        });
+        const invertCheck = cardEl.querySelector('.invert-checkbox');
+        if (invertCheck) {
+            invertCheck.addEventListener('change', e => {
+                gen.isInverted = e.currentTarget.checked;
+                appStateInstance.sync(gen.id);
+                this.setInvertUI(cardEl, gen.isInverted);
+            });
+        }
 
-        any('.mute-toggle-btn', cardEl).on('click', () => {
-            gen.isMuted = !gen.isMuted;
-            appStateInstance.sync(gen.id);
-            this.setMuteUI(cardEl, gen.isMuted);
-        });
+        const muteBtn = cardEl.querySelector('.mute-toggle-btn');
+        if (muteBtn) {
+            muteBtn.addEventListener('click', () => {
+                gen.isMuted = !gen.isMuted;
+                appStateInstance.sync(gen.id);
+                this.setMuteUI(cardEl, gen.isMuted);
+            });
+        }
 
-        any('.remove-osc-btn', cardEl).on('click', () => appStateInstance.removeGenerator(gen.id));
+        const removeBtn = cardEl.querySelector('.remove-osc-btn');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => appStateInstance.removeGenerator(gen.id));
+        }
 
-        cardSurreal.on('effect-added', e => {
+        cardEl.addEventListener('effect-added', e => {
             const fxConfig = e.detail;
             const mount = cardEl.querySelector('.effects-display-mount-point');
             if (mount) {
                 const subPanel = window.ComponentModule_EffectPanels.render(gen, fxConfig, appStateInstance);
                 if (subPanel) mount.appendChild(subPanel);
             }
-            any(`[data-add-fx="${fxConfig.type}"]`, cardEl).classAdd('hidden');
+            const addBtn = cardEl.querySelector(`[data-add-fx="${fxConfig.type}"]`);
+            if (addBtn) addBtn.classList.add('hidden');
         });
 
-        cardSurreal.on('effect-removed', e => {
+        cardEl.addEventListener('effect-removed', e => {
             Object.keys(window.EffectRegistry).forEach(key => {
                 if (typeof window.EffectRegistry[key] !== 'function' && !gen.effects.some(f => f.type === key)) {
-                    any(`[data-add-fx="${key}"]`, cardEl).classRemove('hidden');
+                    const addBtn = cardEl.querySelector(`[data-add-fx="${key}"]`);
+                    if (addBtn) addBtn.classList.remove('hidden');
                 }
             });
         });

@@ -30,10 +30,10 @@ window.ComponentModule_Oscillator = {
                             </label>
                             <button class="mute-toggle-btn px-2.5 py-1 text-xs border border-zinc-700/40 rounded-lg uppercase tracking-wider font-bold transition-all flex items-center gap-1 cursor-pointer bg-zinc-950/40 text-zinc-500 data-[active=true]:bg-rose-950/80 data-[active=true]:text-rose-400 data-[active=true]:border-rose-800/60"
                                 data-active="${gen.isMuted ? 'true' : 'false'}">
-                            <div class="mute-dot w-1.5 h-1.5 rounded-full bg-zinc-700 transition-all data-[active=true]:bg-rose-400 data-[active=true]:animate-pulse"
-                                 data-active="${gen.isMuted ? 'true' : 'false'}"></div>
-                            <span>Mute</span>
-                        </button>
+                                <div class="mute-dot w-1.5 h-1.5 rounded-full bg-zinc-700 transition-all data-[active=true]:bg-rose-400 data-[active=true]:animate-pulse"
+                                     data-active="${gen.isMuted ? 'true' : 'false'}"></div>
+                                <span>Mute</span>
+                            </button>
                         </div>
                         <button class="remove-osc-btn text-zinc-500 hover:text-rose-400 cursor-pointer p-1 flex items-center justify-center hover:bg-zinc-800 rounded-xl transition-all w-8 h-8 select-none" title="Remove Oscillator">
                             ${icons.remove}
@@ -57,8 +57,8 @@ window.ComponentModule_Oscillator = {
                             
                                 return html`
                                     <button data-add-fx="${key}" 
-                                            onClick=${() => appStateInstance.addEffect(gen.id, key)} 
-                                            class="px-3 py-1.5 border rounded-xl text-xs font-bold uppercase transition-all tracking-wide cursor-pointer flex items-center gap-2 border-${fxDef.theme}-900 bg-${fxDef.theme}-950/30 hover:bg-${fxDef.theme}-900/40 text-${fxDef.theme}-400 ${isAdded ? 'hidden' : ''}">
+                                            class="px-3 py-1.5 border rounded-xl text-xs font-bold uppercase transition-all tracking-wide cursor-pointer flex items-center gap-2 border-${fxDef.theme}-900 bg-${fxDef.theme}-950/30 hover:bg-${fxDef.theme}-900/40 text-${fxDef.theme}-400 ${isAdded ? 'hidden' : ''}"
+                                            onClick=${() => appStateInstance.addEffect(gen.id, key)}>
                                         <div class="flex items-center justify-center">${icons.add}</div>
                                         <span>Add ${key}</span>
                                     </button>
@@ -73,12 +73,10 @@ window.ComponentModule_Oscillator = {
             </div>
         `;
 
-        // Bootstrap visual status configurations from current states
         ctrl.setWaveTypeUI(cardEl, gen.type);
         ctrl.setInvertUI(cardEl, gen.isInverted);
         ctrl.setMuteUI(cardEl, gen.isMuted);
 
-        // Bind interactive elements
         ctrl.bindInteractions(cardEl, gen, appStateInstance);
 
         return cardEl;

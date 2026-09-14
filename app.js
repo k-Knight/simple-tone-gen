@@ -38,7 +38,6 @@ function h(type, props, ...children) {
             el.appendChild(c);
         } 
         else if (typeof c === 'object' && c.type) {
-            // Recursive compilation path
             const nestedChild = h(c.type, c.props, ...c.children);
             if (nestedChild) el.appendChild(nestedChild);
         } 
@@ -50,7 +49,16 @@ function h(type, props, ...children) {
     return el;
 }
 
-window.html = htm.bind(h);
+const compiledHtmTemplate = htm.bind(h);
+
+window.html = function(strings, ...values) {
+    const rawDomNode = compiledHtmTemplate(strings, ...values);
+    
+    if (rawDomNode instanceof Node) {
+        return rawDomNode.cloneNode(true);
+    }
+    return rawDomNode;
+};
 
 any(document).on('DOMContentLoaded', () => {
     window.AppState = window.AppStateModule.create(audio);

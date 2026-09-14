@@ -73,12 +73,21 @@ window.AppStateModule = {
                 any('#masterVolumeSlider').on('input', e => {
                     const val = parseFloat(e.currentTarget.value) || 0;
                     this.masterVolume = val;
-                    if (audioInstance.worker) {
+
+                    if (!audioInstance.ctx) {
+                        audioInstance.init();
+                    }
+
+                    if (audioInstance.masterGain && audioInstance.ctx) {
                         const now = audioInstance.ctx.currentTime;
                         audioInstance.masterGain.gain.cancelScheduledValues(now);
                         audioInstance.masterGain.gain.linearRampToValueAtTime(val, now + 0.005);
                     }
-                    any('#masterVolumeLabel').text(`${Math.round(val * 100)}%`);
+
+                    const labelEl = document.getElementById('masterVolumeLabel');
+                    if (labelEl) {
+                        labelEl.textContent = `${Math.round(val * 100)}%`;
+                    }
                 });
                 any('#recDurationInput').on('input', e => { this.recordDuration = parseInt(e.currentTarget.value) || 2; });
                 any('#exportWavButton').on('click', () => this.triggerRecord());

@@ -8,6 +8,7 @@ class ThreadedAudioEngine {
         this.maxQueueDepth = 3;
         this.savedMasterVolume = 0.5;
 
+        // WAV Recording State Registers
         this.isRecording = false;
         this.recordedLeft = [];
         this.recordedRight = [];
@@ -17,6 +18,13 @@ class ThreadedAudioEngine {
         this.isFlushing = false;
         this.latestScopeFrame = new Float32Array(800);
         this.scopeFrameQueue = [];
+
+        // NATIVE HIGH-PERFORMANCE SCHEDULER SYSTEM REGISTERS
+        this.nextScheduleTime = 0.0;     // Hardware C++ clock timeline tracking marker
+        this.lookAheadInterval = 25;     // Scheduler evaluation frequency interval (ms)
+        this.scheduleAheadTime = 0.12;   // Look-ahead buffer depth cushion target window (120ms)
+        this.schedulerTimer = null;      // Native interval identifier handle
+        this.activeSourcesPool = new Set(); // Retention pool prevents runtime JIT garbage sweeping
     }
 
     init() {
@@ -57,21 +65,23 @@ class ThreadedAudioEngine {
                 continue;
             }
             const fx = window.EffectRegistry[key];
-            
-            // Convert "process(args) { ... }" string into a clean "function(args) { ... }" definition statement
+
             let rawProcessString = fx.process.toString().trim();
             if (rawProcessString.startsWith('process')) {
                 rawProcessString = 'function' + rawProcessString.substring(7);
             }
-            
+
             serializedPluginsString += `    "${key}": { process: ${rawProcessString} },\n`;
         }
         serializedPluginsString += "};\n";
 
-        // 3. Directly feed the raw source string wrapper. Completely safe from compilation quirks!
-        const cleanWorkerCode = window.AudioWorkerTextModule.workerSourceCode;
+        const rawFuncString = window.AudioWorkerTextModule.workerBody.toString();
 
-        // Unified layout blob mapping
+        const cleanWorkerCode = rawFuncString.substring(
+            rawFuncString.indexOf('{') + 1,
+            rawFuncString.lastIndexOf('}')
+        );
+
         const workerBlob = new Blob([
             compiledDspString, "\n",
             compiledScopeString, "\n",
@@ -80,8 +90,9 @@ class ThreadedAudioEngine {
         ], { type: 'application/javascript' });
 
         this.worker = new Worker(URL.createObjectURL(workerBlob));
-        console.log("Worker Created Successfully via Structured String Engine");
+        console.log("Worker Created Successfully via Native AudioBuffer Scheduling Engine");
 
+        // NATIVE BRIDGE ARRIVAL LOGIC
         this.worker.onmessage = (e) => {
             if (!e.data) return;
 
@@ -91,8 +102,25 @@ class ThreadedAudioEngine {
             }
 
             const { leftChannel, rightChannel } = e.data;
-            this.leftQueue.push(leftChannel);
-            this.rightQueue.push(rightChannel);
+
+            // 1. Pack data references directly into recording cache arrays if active
+            if (this.isRecording) {
+                if (this.recordedLeft.length * this.bufferLength < this.maxRecordSamples) {
+                    this.recordedLeft.push(new Float32Array(leftChannel));
+                    this.recordedRight.push(new Float32Array(rightChannel));
+                } else {
+                    this.isRecording = false;
+                    window.dispatchEvent(new CustomEvent('record-finished'));
+                }
+            }
+
+            // 2. Wrap raw background buffers into an explicit native browser AudioBuffer object container
+            const nativeBuffer = this.ctx.createBuffer(2, this.bufferLength, this.ctx.sampleRate);
+            nativeBuffer.getChannelData(0).set(leftChannel);
+            nativeBuffer.getChannelData(1).set(rightChannel);
+
+            // 3. Queue the native buffer node instantly into the hardware audio card stream timeline
+            this.scheduleNativeBlock(nativeBuffer);
 
             if (this.isFlushing) {
                 this.isFlushing = false;
@@ -102,42 +130,46 @@ class ThreadedAudioEngine {
             }
         };
 
-        for (let i = 0; i < this.maxQueueDepth; i++) {
-            this.worker.postMessage({ action: 'process', bufferLength: this.bufferLength });
-        }
+        // Initialize the timeline baseline slightly ahead of the current audio timeline cursor clock
+        this.nextScheduleTime = this.ctx.currentTime + 0.05; 
 
-        this.processorNode = this.ctx.createScriptProcessor(this.bufferLength, 0, 2);
-        this.processorNode.connect(this.analyser);
+        // Start the high-precision asynchronous browser lookahead ticking loop
+        this.startSchedulerLoop();
+    }
 
-        this.processorNode.onaudioprocess = (audioEvent) => {
-            const outputBuffer = audioEvent.outputBuffer;
-            const leftOut = outputBuffer.getChannelData(0);
-            const rightOut = outputBuffer.getChannelData(1);
+    startSchedulerLoop() {
+        if (this.schedulerTimer) clearInterval(this.schedulerTimer);
 
-            if (this.leftQueue.length > 0 && this.rightQueue.length > 0) {
-                const lChunk = this.leftQueue.shift();
-                const rChunk = this.rightQueue.shift();
-                leftOut.set(lChunk);
-                rightOut.set(rChunk);
+        this.schedulerTimer = setInterval(() => {
+            // Compute the remaining lookahead safety time window cushion currently sitting in memory
+            let currentBufferedLookaheadSeconds = this.nextScheduleTime - this.ctx.currentTime;
 
-                if (this.isRecording) {
-                    if (this.recordedLeft.length * this.bufferLength < this.maxRecordSamples) {
-                        this.recordedLeft.push(new Float32Array(lChunk));
-                        this.recordedRight.push(new Float32Array(rChunk));
-                    } else {
-                        this.isRecording = false;
-                        window.dispatchEvent(new CustomEvent('record-finished'));
-                    }
-                }
-            } else {
-                leftOut.fill(0);
-                rightOut.fill(0);
-            }
-
-            if (this.leftQueue.length < this.maxQueueDepth) {
+            // Self-healing check: if playback lags or falls under target thresholds, flood requests to top up 
+            if (currentBufferedLookaheadSeconds < this.scheduleAheadTime) {
                 this.worker.postMessage({ action: 'process', bufferLength: this.bufferLength });
             }
+        }, this.lookAheadInterval);
+    }
+
+    scheduleNativeBlock(audioBuffer) {
+        // Instantiate a native browser C++ streaming source node descriptor channel
+        const sourceNode = this.ctx.createBufferSource();
+        sourceNode.buffer = audioBuffer;
+        sourceNode.connect(this.analyser);
+
+        // Native lifecycle callback memory hook: cleanly eject node context references upon tracking completion
+        sourceNode.onended = () => {
+            sourceNode.disconnect();
+            this.activeSourcesPool.delete(sourceNode);
         };
+        this.activeSourcesPool.add(sourceNode);
+
+        // Direct C++ thread hardware call command scheduling the slice at a specific microsecond timestamp
+        sourceNode.start(this.nextScheduleTime);
+
+        // Advance the tracking timeline by the exact mathematical step length of the buffer window segment
+        const chunkDurationSeconds = this.bufferLength / this.ctx.sampleRate;
+        this.nextScheduleTime += chunkDurationSeconds;
     }
 
     startRecording(seconds) {

@@ -74,21 +74,88 @@
 
                         let t = evalTime - s.timeShift;
                         
-                        let componentLeft = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * t, t, s.frequency);
-                        let componentRight = componentLeft;
+                        // --- EXTRACT AND CATEGORIZE EFFECTS ---
+                        let activeWarpers = [];
+                        let activeMultipliers = [];
 
-                        // --- UNIFIED MODULAR EFFECTS DISPATCHER SYSTEM SECTION ---
                         if (gen.effects) {
                             for (let j = 0; j < gen.effects.length; j++) {
                                 const fx = gen.effects[j];
-                                // Read the dynamic string-serialized math formula pushed into memory by audio-engine.js
-                                const plugin = workerScope.AudioWorker.Plugins ? workerScope.AudioWorker.Plugins[fx.type] : null;
-                                if (plugin) {
-                                    componentLeft = plugin.process(componentLeft, t, s, fx, workerScope.AudioWorker.getWaveSample, gen.type);
-                                    componentRight = componentLeft;
+                                if (fx.type === 'hyperbolic') {
+                                    activeWarpers.push(fx);
+                                } else {
+                                    activeMultipliers.push(fx);
                                 }
                             }
                         }
+
+                        // --- TIME BASE PRE-WARP CALCULATION ---
+                        let warpedT = t;
+                        let isWarped = false;
+                        let warpFx = null;
+                        
+                        if (activeWarpers.length > 0) {
+                            warpFx = activeWarpers[0];
+                            const period = warpFx.warpPeriod;
+                            const cutoff = warpFx.zeroCutoff;
+                            
+                            const doublePeriod = 2 * period;
+                            let localT = Math.abs(t) % doublePeriod;
+                            if (localT > period) localT = doublePeriod - localT;
+                            if (localT < cutoff) localT = cutoff;
+                            
+                            warpedT = (period * cutoff) / localT;
+                            isWarped = true;
+                        }
+
+                        // --- GENERATE AND DISPATCH AUDIO SAMPLES ---
+                        let componentLeft = 0;
+                        
+                        if (activeMultipliers.length > 0) {
+                            let currentSample = workerScope.AudioWorker.getWaveSample(
+                                gen.type, 
+                                2 * Math.PI * s.frequency * (isWarped ? warpedT : t), 
+                                (isWarped ? warpedT : t), 
+                                s.frequency
+                            );
+                            
+                            for (let j = 0; j < activeMultipliers.length; j++) {
+                                const fx = activeMultipliers[j];
+                                const plugin = workerScope.AudioWorker.Plugins ? workerScope.AudioWorker.Plugins[fx.type] : null;
+                                if (plugin) {
+                                    currentSample = plugin.process(currentSample, t, s, fx, (type, angle, subT, freq) => {
+                                        if (isWarped && warpFx && warpFx[0]) {
+                                            let subLocalT = Math.abs(subT) % (2 * warpFx[0].warpPeriod);
+                                            if (subLocalT > warpFx[0].warpPeriod) {
+                                                subLocalT = (2 * warpFx[0].warpPeriod) - subLocalT;
+                                            }
+                                            
+                                            if (subLocalT < warpFx[0].zeroCutoff) {
+                                                subLocalT = warpFx[0].zeroCutoff;
+                                            }
+                                            
+                                            let subWarpedT = (warpFx[0].warpPeriod * warpFx[0].zeroCutoff) / subLocalT;
+                                            
+                                            return workerScope.AudioWorker.getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
+                                        }
+                                        return workerScope.AudioWorker.getWaveSample(type, angle, subT, freq);
+                                    }, gen.type);
+                                }
+                            }
+                            componentLeft = currentSample;
+                        } else {
+                            let finalT = isWarped ? warpedT : t;
+                            let rawSample = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * finalT, finalT, s.frequency);
+                            
+                            if (isWarped && warpFx) {
+                                componentLeft = rawSample * warpFx.warpIntensity + 
+                                                workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * t, t, s.frequency) * (1.0 - warpFx.warpIntensity);
+                            } else {
+                                componentLeft = rawSample;
+                            }
+                        }
+                        
+                        let componentRight = componentLeft;
 
                         if (gen.isInverted) {
                             componentLeft = -componentLeft;
