@@ -77,41 +77,17 @@
                         let componentLeft = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * t, t, s.frequency);
                         let componentRight = componentLeft;
 
-                        const unisonFx = gen.effects ? gen.effects.find(fx => fx.type === 'unison') : null;
-                        if (unisonFx) {
-                            const mode = Math.round(unisonFx.superMode);
-                            let unisonMix = componentLeft;
-                            if (mode === 0 || mode === 1) {
-                                let fUpper = s.frequency + s.superDetune;
-                                unisonMix += workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * fUpper * t, t, fUpper) * s.superLoudness;
+                        // --- UNIFIED MODULAR EFFECTS DISPATCHER SYSTEM SECTION ---
+                        if (gen.effects) {
+                            for (let j = 0; j < gen.effects.length; j++) {
+                                const fx = gen.effects[j];
+                                // Read the dynamic string-serialized math formula pushed into memory by audio-engine.js
+                                const plugin = workerScope.AudioWorker.Plugins ? workerScope.AudioWorker.Plugins[fx.type] : null;
+                                if (plugin) {
+                                    componentLeft = plugin.process(componentLeft, t, s, fx, workerScope.AudioWorker.getWaveSample, gen.type);
+                                    componentRight = componentLeft;
+                                }
                             }
-                            if (mode === 0 || mode === 2) {
-                                let fLower = s.frequency - s.superDetune;
-                                unisonMix += workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * fLower * t, t, fLower) * s.superLoudness;
-                            }
-                            unisonMix /= (1.0 + (mode === 0 ? 2 : 1) * s.superLoudness);
-                            componentLeft = unisonMix;
-                            componentRight = unisonMix;
-                        }
-
-                        const timeSpreadFx = gen.effects ? gen.effects.find(fx => fx.type === 'timespread') : null;
-                        if (timeSpreadFx) {
-                            const mode = Math.round(timeSpreadFx.spreadMode);
-                            let subMix = 0;
-
-                            if (mode === 0) {
-                                let tOffset = t - s.spreadTime;
-                                subMix = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * tOffset, tOffset, s.frequency) * s.spreadLoudness;
-                            } else {
-                                let tPlus = t - s.spreadTime;
-                                let tMinus = t + s.spreadTime;
-                                let v1 = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * tPlus, tPlus, s.frequency);
-                                let v2 = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * tMinus, tMinus, s.frequency);
-                                subMix = ((v1 + v2) / 2.0) * s.spreadLoudness;
-                            }
-
-                            componentLeft = (componentLeft + subMix) / (1.0 + s.spreadLoudness);
-                            componentRight = (componentRight + subMix) / (1.0 + s.spreadLoudness);
                         }
 
                         if (gen.isInverted) {

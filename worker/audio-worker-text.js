@@ -1,7 +1,6 @@
-// Clean global namespace initialization container
 window.AudioWorkerTextModule = {
-    // Defined as a plain native executable container method block to give you full IDE syntax coloring
-    functionBody() {
+    // Stored directly as a pure string literal. No more string manipulation syntax bugs!
+    workerSourceCode: `
         const getWaveSample = self.AudioWorker.getWaveSample;
         const resetScopeState = self.AudioWorker.resetScopeState;
         const processScopeWindow = self.AudioWorker.processScopeWindow;
@@ -59,11 +58,7 @@ window.AudioWorkerTextModule = {
                                 frequency: gen.frequency,
                                 loudness: gen.loudness,
                                 pan: gen.pan,
-                                timeShift: gen.timeShift,
-                                superDetune: 1.5,
-                                superLoudness: 0.75,
-                                spreadTime: 0.0,
-                                spreadLoudness: 0.5
+                                timeShift: gen.timeShift
                             });
                         }
 
@@ -81,52 +76,18 @@ window.AudioWorkerTextModule = {
                         let voiceSampleLeft = getWaveSample(gen.type, 2 * Math.PI * s.frequency * baseT, baseT, s.frequency);
                         let voiceSampleRight = voiceSampleLeft;
 
-                        const unisonFx = gen.effects ? gen.effects.find(fx => fx.type === 'unison') : null;
-                        if (unisonFx) {
-                            s.superDetune += (unisonFx.superDetune - s.superDetune) * factor;
-                            s.superLoudness += (unisonFx.superLoudness - s.superLoudness) * factor;
-
-                            let unisonMix = voiceSampleLeft;
-                            const mode = Math.round(unisonFx.superMode);
-
-                            if (mode === 0 || mode === 1) {
-                                let fUpper = s.frequency + s.superDetune;
-                                unisonMix += getWaveSample(gen.type, 2 * Math.PI * fUpper * baseT, baseT, fUpper) * s.superLoudness;
+                        // --- UNIFIED MODULAR PLUGIN EFFECT LOOP ---
+                        if (gen.effects) {
+                            for (let j = 0; j < gen.effects.length; j++) {
+                                const fx = gen.effects[j];
+                                const plugin = self.AudioWorker.Plugins ? self.AudioWorker.Plugins[fx.type] : null;
+                                if (plugin) {
+                                    voiceSampleLeft = plugin.process(voiceSampleLeft, baseT, s, fx, getWaveSample, gen.type);
+                                    voiceSampleRight = voiceSampleLeft;
+                                }
                             }
-                            if (mode === 0 || mode === 2) {
-                                let fLower = s.frequency - s.superDetune;
-                                unisonMix += getWaveSample(gen.type, 2 * Math.PI * fLower * baseT, baseT, fLower) * s.superLoudness;
-                            }
-                            unisonMix /= (1.0 + (mode === 0 ? 2 : 1) * s.superLoudness);
-                            voiceSampleLeft = unisonMix;
-                            voiceSampleRight = unisonMix;
                         }
-
-                        const timeSpreadFx = gen.effects ? gen.effects.find(fx => fx.type === 'timespread') : null;
-                        if (timeSpreadFx) {
-                            s.spreadTime += (timeSpreadFx.spreadTime - s.spreadTime) * factor; 
-                            s.spreadLoudness += (timeSpreadFx.spreadLoudness - s.spreadLoudness) * factor;
-                        
-                            const mode = Math.round(timeSpreadFx.spreadMode);
-                        
-                            let subOscillationMix = 0;
-                        
-                            if (mode === 0) {
-                                let tOffset = baseT - s.spreadTime;
-                                subOscillationMix = getWaveSample(gen.type, 2 * Math.PI * s.frequency * tOffset, tOffset, s.frequency) * s.spreadLoudness;
-                            } else {
-                                let tPlus = baseT - s.spreadTime;
-                                let tMinus = baseT + s.spreadTime;
-                            
-                                let v1 = getWaveSample(gen.type, 2 * Math.PI * s.frequency * tPlus, tPlus, s.frequency);
-                                let v2 = getWaveSample(gen.type, 2 * Math.PI * s.frequency * tMinus, tMinus, s.frequency);
-                            
-                                subOscillationMix = ((v1 + v2) / 2.0) * s.spreadLoudness;
-                            }
-                        
-                            voiceSampleLeft = (voiceSampleLeft + subOscillationMix) / (1.0 + s.spreadLoudness);
-                            voiceSampleRight = (voiceSampleRight + subOscillationMix) / (1.0 + s.spreadLoudness);
-                        }
+                        // --- END MODULAR PLUGIN EFFECT LOOP ---
 
                         if (gen.isInverted) {
                             voiceSampleLeft = -voiceSampleLeft;
@@ -154,5 +115,5 @@ window.AudioWorkerTextModule = {
                 self.postMessage({ leftChannel, rightChannel }, [leftChannel.buffer, rightChannel.buffer]);
             }
         };
-    }
+    `
 };

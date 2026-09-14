@@ -2,9 +2,9 @@ window.ComponentModule_KnobController = {
     // --- 1. Mathematics ---
     getRotation(v, min, max, isLog) {
         let pct;
-        if (isLog) {
-            const safeMin = min <= 0 ? 0.001 : min;
-            const safeV = v <= 0 ? safeMin : v;
+        if (isLog && min > 0 && max > 0) {
+            const safeMin = min;
+            const safeV = Math.max(safeMin, v);
             pct = (Math.log(safeV) - Math.log(safeMin)) / (Math.log(max) - Math.log(safeMin));
         } else {
             pct = (v - min) / (max - min);
@@ -14,18 +14,19 @@ window.ComponentModule_KnobController = {
     },
 
     getDisplayPrecision(value, stepDecimals, isLog) {
-        if (isLog) {
+        if (isLog && value > 0) {
             const absCalc = Math.abs(value);
             if (absCalc >= 1000) return 0;
             if (absCalc > 100) return 1;
             if (absCalc > 10) return 2;
             return 3;
         }
+        
         return stepDecimals;
     },
 
     calculateValueFromPct(pct, min, max, isLog) {
-        if (isLog) {
+        if (isLog && min > 0 && max > 0) {
             const safeMin = min <= 0 ? 0.001 : min;
             return Math.exp(Math.log(safeMin) + pct * (Math.log(max) - Math.log(safeMin)));
         }
@@ -55,19 +56,18 @@ window.ComponentModule_KnobController = {
     },
 
     // --- 3. Interaction Mechanics / Event Binder ---
-    bindInteractions(knobEl, targetObj, key, min, max, isLog, stepDecimals, syncCallback) {
+    bindInteractions(knobEl, targetObj, key, min, max, step, isLog, stepDecimals, syncCallback) {
         const dialSurface = any('.knob-dial-surface', knobEl);
         const inputNode = knobEl.querySelector('.knob-numeric-input');
         const resetBtn = any('.reset-knob-btn', knobEl);
 
-        // --- Drag Engine Logic ---
         const setupDrag = (e) => {
             if (e.button === 2) return;
             let startY = e.pageY || (e.touches ? e.touches.pageY : e.pageY);
             let startVal = targetObj[key];
             
             let startPct;
-            if (isLog) {
+            if (isLog && min > 0 && max > 0) {
                 const safeMin = min <= 0 ? 0.001 : min;
                 const safeVal = startVal <= 0 ? safeMin : startVal;
                 startPct = (Math.log(safeVal) - Math.log(safeMin)) / (Math.log(max) - Math.log(safeMin));
@@ -77,15 +77,27 @@ window.ComponentModule_KnobController = {
 
             const move = (mev) => {
                 let currentY = mev.pageY || (mev.touches ? mev.touches.pageY : mev.pageY);
-                const sensitivity = mev.shiftKey ? 2000 : 200;
+                
+                const sensitivity = mev.shiftKey ? 4000 : 400;
                 let pctDelta = (startY - currentY) / sensitivity;
                 let nextPct = Math.max(0, Math.min(1, startPct + pctDelta));
 
                 let calculated = this.calculateValueFromPct(nextPct, min, max, isLog);
+                
+                if (step && step > 0) {
+                    const stepsCount = Math.round((calculated - min) / step);
+                    calculated = min + (stepsCount * step);
+                    calculated = Math.max(min, Math.min(max, calculated));
+                }
+
                 let precision = this.getDisplayPrecision(calculated, stepDecimals, isLog);
                 targetObj[key] = parseFloat(calculated.toFixed(precision));
                 
-                syncCallback();
+                // This now securely evaluates to your actual callback function block!
+                if (typeof syncCallback === 'function') {
+                    syncCallback();
+                }
+                
                 this.updateUIElements(knobEl, targetObj[key], key, min, max, isLog, stepDecimals);
             };
 
@@ -102,29 +114,35 @@ window.ComponentModule_KnobController = {
             window.addEventListener('touchend', stop);
         };
 
-        // --- Reset Logic ---
         const handleReset = (e) => {
             if (e) e.preventDefault();
             targetObj[key] = targetObj._defaults && targetObj._defaults[key] !== undefined 
                 ? targetObj._defaults[key] 
                 : (min < 0 && max > 0 ? 0 : min);
-            syncCallback();
+            
+            if (typeof syncCallback === 'function') {
+                syncCallback();
+            }
+            
             this.updateUIElements(knobEl, targetObj[key], key, min, max, isLog, stepDecimals);
         };
 
-        // Attach Surreal Event Bindings
+        // Attach Event Bindings
         dialSurface.on('mousedown', setupDrag);
         dialSurface.on('touchstart', setupDrag);
         dialSurface.on('contextmenu', handleReset);
         resetBtn.on('click', handleReset);
 
-        // --- Direct Numeric Typing ---
         if (inputNode) {
             any(inputNode).on('keydown', e => { if (e.key === 'Enter') e.currentTarget.blur(); });
             any(inputNode).on('input', e => {
                 let v = parseFloat(e.currentTarget.value) || min;
                 targetObj[key] = Math.max(min, Math.min(max, v));
-                syncCallback();
+                
+                if (typeof syncCallback === 'function') {
+                    syncCallback();
+                }
+                
                 this.updateUIElements(knobEl, targetObj[key], key, min, max, isLog, stepDecimals);
             });
             any(inputNode).on('blur', () => {

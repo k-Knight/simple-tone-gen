@@ -51,19 +51,36 @@ class ThreadedAudioEngine {
             self.AudioWorker.processScopeWindow = ${window.AudioWorker.processScopeWindow.toString()};
         `;
 
-        // Safely extract the raw string function source code from our module
-        const workerSourceCode = window.AudioWorkerTextModule.functionBody.toString();
-        const cleanedDspCodeString = workerSourceCode.substring(workerSourceCode.indexOf('{') + 1, workerSourceCode.lastIndexOf('}'));
+        let serializedPluginsString = "self.AudioWorker = self.AudioWorker || {};\nself.AudioWorker.Plugins = {\n";
+        for (let key in window.EffectRegistry) {
+            if (typeof window.EffectRegistry[key] === 'function' || !window.EffectRegistry[key].process) {
+                continue;
+            }
+            const fx = window.EffectRegistry[key];
+            
+            // Convert "process(args) { ... }" string into a clean "function(args) { ... }" definition statement
+            let rawProcessString = fx.process.toString().trim();
+            if (rawProcessString.startsWith('process')) {
+                rawProcessString = 'function' + rawProcessString.substring(7);
+            }
+            
+            serializedPluginsString += `    "${key}": { process: ${rawProcessString} },\n`;
+        }
+        serializedPluginsString += "};\n";
 
-        // FIXED: Unified single blob assignment to prevent duplicate declaration syntax errors
+        // 3. Directly feed the raw source string wrapper. Completely safe from compilation quirks!
+        const cleanWorkerCode = window.AudioWorkerTextModule.workerSourceCode;
+
+        // Unified layout blob mapping
         const workerBlob = new Blob([
             compiledDspString, "\n",
             compiledScopeString, "\n",
-            cleanedDspCodeString
+            serializedPluginsString, "\n",
+            cleanWorkerCode
         ], { type: 'application/javascript' });
 
         this.worker = new Worker(URL.createObjectURL(workerBlob));
-        console.log("Worker Created Successfully via Code Extract");
+        console.log("Worker Created Successfully via Structured String Engine");
 
         this.worker.onmessage = (e) => {
             if (!e.data) return;

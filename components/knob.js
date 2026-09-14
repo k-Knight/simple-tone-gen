@@ -5,7 +5,13 @@ window.ComponentModule_Knob = {
         
         const stepStr = String(step);
         const stepParts = stepStr.split('.');
-        const stepDecimals = stepParts.length > 1 ? stepParts.length : 0;
+        
+        let stepDecimals = 0;
+        if (stepStr.includes('e-')) {
+            stepDecimals = parseInt(stepStr.split('e-')[1]) || 6;
+        } else if (stepParts.length > 1) {
+            stepDecimals = stepParts[1].length;
+        }
 
         const isSuperMode = key === 'superMode' || key === 'spreadMode';
         const activeTheme = customColor === 'purple' ? 'purple' : 'cyan';
@@ -38,8 +44,7 @@ window.ComponentModule_Knob = {
         `;
 
         ctrl.updateUIElements(knobEl, initialValue, key, min, max, isLog, stepDecimals);
-
-        ctrl.bindInteractions(knobEl, targetObj, key, min, max, isLog, stepDecimals, syncCallback);
+        ctrl.bindInteractions(knobEl, targetObj, key, min, max, step, isLog, stepDecimals, syncCallback);
 
         return knobEl;
     }

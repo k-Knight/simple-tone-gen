@@ -4,8 +4,6 @@ window.ResourceModule_Icons = {
         const doc = parser.parseFromString(svgString, "application/xml");
         const svgNode = doc.documentElement;
 
-        console.log("new svg creation")
-        
         return document.importNode(svgNode, true);
     },
 
