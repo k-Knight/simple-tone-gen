@@ -2,18 +2,24 @@ const audio = new window.AudioEngineModule.AudioEngine();
 
 function h(type, props, ...children) {
     props = props || {};
+    if (!type || (typeof type === 'string' && !type.trim())) return null;
     if (typeof type === 'function') return type(props, children);
     
     const isSVG = ['svg', 'path', 'line', 'polyline', 'rect', 'circle', 'polygon', 'g'].includes(type);
     const el = isSVG 
-        ? document.createElementNS("http://www.w3.org/2000/svg", type)
+        ? document.createElementNS("http://w3.org", type)
         : document.createElement(type);
     
     Object.keys(props).forEach(k => {
         if (k.startsWith('on') && typeof props[k] === 'function') {
             el.addEventListener(k.toLowerCase().substring(2), props[k]);
         } else if (k === 'class') {
-            if (isSVG) el.setAttribute('class', props[k]); else el.className = props[k];
+            // Unify class management for SVG elements to force browser style recalculation
+            if (isSVG) {
+                el.setAttribute('class', props[k]);
+            } else {
+                el.className = props[k];
+            }
         } else if (k === 'style' && typeof props[k] === 'object') {
             Object.assign(el.style, props[k]);
         } else if (k === 'innerHTML') {
@@ -26,11 +32,17 @@ function h(type, props, ...children) {
     });
 
     children.flat(Infinity).forEach(c => {
-        if (c === null || c === undefined) return;
+        if (c === null || c === undefined || (typeof c === 'string' && !c.trim())) return;
+        
         if (c instanceof Node) {
             el.appendChild(c);
-        } else {
-            if (isSVG && typeof c === 'string' && !c.trim()) return;
+        } 
+        else if (typeof c === 'object' && c.type) {
+            // Recursive compilation path
+            const nestedChild = h(c.type, c.props, ...c.children);
+            if (nestedChild) el.appendChild(nestedChild);
+        } 
+        else {
             el.appendChild(document.createTextNode(String(c)));
         }
     });
