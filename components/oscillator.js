@@ -12,7 +12,7 @@ window.ComponentModule_Oscillator = {
                             <span class="text-xs font-mono px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400">OSC #${index + 1}</span>
                             <div class="wave-type-selectors-container flex bg-zinc-950 p-1 border border-zinc-800 rounded-xl text-xs">
                                 ${appStateInstance.waveTypes.map(w => html`
-                                    <button data-wave="${w}" 
+                                    <button data-wave="${w}"
                                             data-active="${gen.type === w ? 'true' : 'false'}"
                                             class="wave-type-btn px-2.5 py-1 rounded-lg border border-transparent capitalize text-zinc-400 transition-all cursor-pointer data-[active=true]:bg-zinc-800 data-[active=true]:text-cyan-400 data-[active=true]:border-zinc-700">
                                         ${w}
@@ -39,7 +39,7 @@ window.ComponentModule_Oscillator = {
                             ${icons.remove}
                         </button>
                     </div>
-                    
+
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         ${knob(gen, 'frequency', 'Frequency', 20, 20000, 1, true, 'Hz', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'loudness', 'Loudness', 0, 1, 0.01, false, '%', () => appStateInstance.sync(gen.id), 'cyan')}
@@ -51,12 +51,12 @@ window.ComponentModule_Oscillator = {
                        <div class="flex items-center gap-3">
                             ${Object.keys(window.EffectRegistry).map(key => {
                                 if (typeof window.EffectRegistry[key] === 'function') return null;
-                            
+
                                 const fxDef = window.EffectRegistry[key];
                                 const isAdded = gen.effects.some(f => f.type === key);
-                            
+
                                 return html`
-                                    <button data-add-fx="${key}" 
+                                    <button data-add-fx="${key}"
                                             class="px-3 py-1.5 border rounded-xl text-xs font-bold uppercase transition-all tracking-wide cursor-pointer flex items-center gap-2 border-${fxDef.theme}-900 bg-${fxDef.theme}-950/30 hover:bg-${fxDef.theme}-900/40 text-${fxDef.theme}-400 ${isAdded ? 'hidden' : ''}"
                                             onClick=${() => appStateInstance.addEffect(gen.id, key)}>
                                         <div class="flex items-center justify-center">${icons.add}</div>

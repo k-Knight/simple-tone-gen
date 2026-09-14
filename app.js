@@ -4,12 +4,12 @@ function h(type, props, ...children) {
     props = props || {};
     if (!type || (typeof type === 'string' && !type.trim())) return null;
     if (typeof type === 'function') return type(props, children);
-    
+
     const isSVG = ['svg', 'path', 'line', 'polyline', 'rect', 'circle', 'polygon', 'g'].includes(type);
-    const el = isSVG 
+    const el = isSVG
         ? document.createElementNS("http://w3.org", type)
         : document.createElement(type);
-    
+
     Object.keys(props).forEach(k => {
         if (k.startsWith('on') && typeof props[k] === 'function') {
             el.addEventListener(k.toLowerCase().substring(2), props[k]);
@@ -33,31 +33,32 @@ function h(type, props, ...children) {
 
     children.flat(Infinity).forEach(c => {
         if (c === null || c === undefined || (typeof c === 'string' && !c.trim())) return;
-        
+
         if (c instanceof Node) {
             el.appendChild(c);
-        } 
+        }
         else if (typeof c === 'object' && c.type) {
             const nestedChild = h(c.type, c.props, ...c.children);
             if (nestedChild) el.appendChild(nestedChild);
-        } 
+        }
         else {
             el.appendChild(document.createTextNode(String(c)));
         }
     });
-    
+
     return el;
 }
 
-const compiledHtmTemplate = htm.bind(h);
+const baseHtmCompiler = htm.bind(h);
 
 window.html = function(strings, ...values) {
-    const rawDomNode = compiledHtmTemplate(strings, ...values);
-    
-    if (rawDomNode instanceof Node) {
-        return rawDomNode.cloneNode(true);
+    const uncachedStrings = [...strings];
+
+    if (strings.raw) {
+        uncachedStrings.raw = [...strings.raw];
     }
-    return rawDomNode;
+
+    return baseHtmCompiler(uncachedStrings, ...values);
 };
 
 any(document).on('DOMContentLoaded', () => {

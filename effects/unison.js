@@ -2,7 +2,7 @@ window.Effect_Unison = {
     type: 'unison',
     label: 'Multi-Voice Unison Detune Modulator',
     theme: 'purple',
-    
+
     // UI generation engine blueprint map
     knobs: [
         { key: 'superDetune', label: 'Detune Width', min: 0, max: 20, step: 0.01, isLog: false, unit: 'Hz' },
@@ -34,7 +34,7 @@ window.Effect_Unison = {
             let fLower = s.frequency - fx.superDetune;
             unisonMix += getWaveSample(waveType, 2 * Math.PI * fLower * baseT, baseT, fLower) * fx.superLoudness;
         }
-        
+
         return unisonMix / (1.0 + (mode === 0 ? 2 : 1) * fx.superLoudness);
     }
 };

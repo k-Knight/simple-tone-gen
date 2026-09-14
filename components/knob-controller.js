@@ -21,7 +21,7 @@ window.ComponentModule_KnobController = {
             if (absCalc > 10) return 2;
             return 3;
         }
-        
+
         return stepDecimals;
     },
 
@@ -44,7 +44,7 @@ window.ComponentModule_KnobController = {
 
         if (pointerNode) pointerNode.style.transform = `rotate(${deg}deg)`;
         if (inputNode) inputNode.value = val.toFixed(prec);
-        
+
         if (textDisplayNode) {
             const roundedMode = Math.round(val);
             if (key === 'spreadMode') {
@@ -65,7 +65,7 @@ window.ComponentModule_KnobController = {
             if (e.button === 2) return;
             let startY = e.pageY || (e.touches ? e.touches.pageY : e.pageY);
             let startVal = targetObj[key];
-            
+
             let startPct;
             if (isLog && min > 0 && max > 0) {
                 const safeMin = min <= 0 ? 0.001 : min;
@@ -77,13 +77,13 @@ window.ComponentModule_KnobController = {
 
             const move = (mev) => {
                 let currentY = mev.pageY || (mev.touches ? mev.touches.pageY : mev.pageY);
-                
+
                 const sensitivity = mev.shiftKey ? 4000 : 400;
                 let pctDelta = (startY - currentY) / sensitivity;
                 let nextPct = Math.max(0, Math.min(1, startPct + pctDelta));
 
                 let calculated = this.calculateValueFromPct(nextPct, min, max, isLog);
-                
+
                 if (step && step > 0) {
                     const stepsCount = Math.round((calculated - min) / step);
                     calculated = min + (stepsCount * step);
@@ -92,12 +92,12 @@ window.ComponentModule_KnobController = {
 
                 let precision = this.getDisplayPrecision(calculated, stepDecimals, isLog);
                 targetObj[key] = parseFloat(calculated.toFixed(precision));
-                
+
                 // This now securely evaluates to your actual callback function block!
                 if (typeof syncCallback === 'function') {
                     syncCallback();
                 }
-                
+
                 this.updateUIElements(knobEl, targetObj[key], key, min, max, isLog, stepDecimals);
             };
 
@@ -116,14 +116,14 @@ window.ComponentModule_KnobController = {
 
         const handleReset = (e) => {
             if (e) e.preventDefault();
-            targetObj[key] = targetObj._defaults && targetObj._defaults[key] !== undefined 
-                ? targetObj._defaults[key] 
+            targetObj[key] = targetObj._defaults && targetObj._defaults[key] !== undefined
+                ? targetObj._defaults[key]
                 : (min < 0 && max > 0 ? 0 : min);
-            
+
             if (typeof syncCallback === 'function') {
                 syncCallback();
             }
-            
+
             this.updateUIElements(knobEl, targetObj[key], key, min, max, isLog, stepDecimals);
         };
 
@@ -138,11 +138,11 @@ window.ComponentModule_KnobController = {
             any(inputNode).on('input', e => {
                 let v = parseFloat(e.currentTarget.value) || min;
                 targetObj[key] = Math.max(min, Math.min(max, v));
-                
+
                 if (typeof syncCallback === 'function') {
                     syncCallback();
                 }
-                
+
                 this.updateUIElements(knobEl, targetObj[key], key, min, max, isLog, stepDecimals);
             });
             any(inputNode).on('blur', () => {

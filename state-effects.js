@@ -13,7 +13,7 @@ window.StateEffectsModule = {
 
                 target.effects.push(fxConfig);
                 state.sync(genId);
-                
+
                 any(`[data-osc-id="${genId}"]`).run(el => el.dispatchEvent(new CustomEvent('effect-added', { detail: fxConfig })));
             },
 

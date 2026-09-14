@@ -11,7 +11,7 @@ window.AppStateModule = {
                 window.addEventListener('record-finished', () => {
                     this.isRecording = false;
                     audioInstance.exportWav();
-                    
+
                     const recBtn = document.getElementById('exportWavButton');
                     if (recBtn) {
                         recBtn.textContent = 'Export WAV';
@@ -19,7 +19,7 @@ window.AppStateModule = {
                         recBtn.removeAttribute('disabled');
                     }
                 });
-                
+
                 this.buildBaseShell();
                 window.VisualScopeModule.draw(audioInstance);
             },
@@ -98,7 +98,7 @@ window.AppStateModule = {
                 if (this.isRecording) return;
                 this.isRecording = true;
                 audioInstance.startRecording(this.recordDuration);
-                
+
                 const recBtn = document.getElementById('exportWavButton');
                 if (recBtn) {
                     recBtn.textContent = 'REC...';

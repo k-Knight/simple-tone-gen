@@ -9,7 +9,7 @@ window.StateGeneratorsModule = {
                 state.generators.push(initialConfig);
                 audioInstance.addGenerator(id);
                 state.sync(id);
-                
+
                 const container = document.getElementById('oscillatorListContainer');
                 if (container) {
                     const node = window.ComponentModule_Oscillator.render(initialConfig, state.generators.length - 1, state);
@@ -21,7 +21,7 @@ window.StateGeneratorsModule = {
             removeGenerator(id) {
                 audioInstance.removeGenerator(id);
                 state.generators = state.generators.filter(g => g.id !== id);
-                
+
                 any(`[data-osc-id="${id}"]`).remove();
                 if (state.generators.length === 0) {
                     any('#emptyStatePlaceholder').classRemove('hidden');

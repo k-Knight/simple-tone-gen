@@ -12,7 +12,7 @@ window.ComponentModule_OscillatorController = {
         if (wrapper) {
             const activeString = isInverted ? 'true' : 'false';
             wrapper.setAttribute('data-active', activeString);
-            
+
             const ball = wrapper.firstElementChild;
             if (ball) ball.setAttribute('data-active', activeString);
         }

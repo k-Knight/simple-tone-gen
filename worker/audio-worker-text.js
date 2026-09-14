@@ -87,32 +87,32 @@ window.AudioWorkerTextModule = {
                         let warpedT = baseT;
                         let isWarped = false;
                         let warpFx = null;
-                        
+
                         if (activeWarpers.length > 0) {
                             warpFx = activeWarpers[0];
                             const period = warpFx.warpPeriod;
                             const cutoff = warpFx.zeroCutoff;
-                            
+
                             const doublePeriod = 2 * period;
                             let localT = Math.abs(baseT) % doublePeriod;
                             if (localT > period) localT = doublePeriod - localT;
                             if (localT < cutoff) localT = cutoff;
-                            
+
                             warpedT = (period * cutoff) / localT;
                             isWarped = true;
                         }
 
                         // --- GENERATE AND DISPATCH AUDIO SAMPLES ---
                         let voiceSampleLeft = 0;
-                        
+
                         if (activeMultipliers.length > 0) {
                             let currentSample = getWaveSample(
-                                gen.type, 
-                                2 * Math.PI * s.frequency * (isWarped ? warpedT : baseT), 
-                                (isWarped ? warpedT : baseT), 
+                                gen.type,
+                                2 * Math.PI * s.frequency * (isWarped ? warpedT : baseT),
+                                (isWarped ? warpedT : baseT),
                                 s.frequency
                             );
-                            
+
                             for (let j = 0; j < activeMultipliers.length; j++) {
                                 const fx = activeMultipliers[j];
                                 const plugin = self.AudioWorker.Plugins ? self.AudioWorker.Plugins[fx.type] : null;
@@ -123,7 +123,7 @@ window.AudioWorkerTextModule = {
                                             if (subLocalT > warpFx.warpPeriod) subLocalT = (2 * warpFx.warpPeriod) - subLocalT;
                                             if (subLocalT < warpFx.zeroCutoff) subLocalT = warpFx.zeroCutoff;
                                             let subWarpedT = (warpFx.warpPeriod * warpFx.zeroCutoff) / subLocalT;
-                                            
+
                                             return getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
                                         }
                                         return getWaveSample(type, angle, subT, freq);
@@ -134,15 +134,15 @@ window.AudioWorkerTextModule = {
                         } else {
                             let finalT = isWarped ? warpedT : baseT;
                             let rawSample = getWaveSample(gen.type, 2 * Math.PI * s.frequency * finalT, finalT, s.frequency);
-                            
+
                             if (isWarped && warpFx) {
-                                voiceSampleLeft = rawSample * warpFx.warpIntensity + 
+                                voiceSampleLeft = rawSample * warpFx.warpIntensity +
                                                    getWaveSample(gen.type, 2 * Math.PI * s.frequency * baseT, baseT, s.frequency) * (1.0 - warpFx.warpIntensity);
                             } else {
                                 voiceSampleLeft = rawSample;
                             }
                         }
-                        
+
                         let voiceSampleRight = voiceSampleLeft;
 
                         if (gen.isInverted) {
@@ -153,7 +153,7 @@ window.AudioWorkerTextModule = {
                         const volClampedLeft = voiceSampleLeft * s.loudness;
                         const volClampedRight = voiceSampleRight * s.loudness;
 
-                        const panNormalized = (s.pan + 1) / 2; 
+                        const panNormalized = (s.pan + 1) / 2;
                         const gainLeft = Math.cos(panNormalized * Math.PI / 2);
                         const gainRight = Math.sin(panNormalized * Math.PI / 2);
 

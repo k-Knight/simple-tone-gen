@@ -31,7 +31,7 @@ window.AppStateModule = {
                 this.generators.push(initialConfig);
                 audioInstance.addGenerator(id);
                 this.sync(id);
-                
+
                 // Append instead of sweeping everything
                 window.VisualEngineModule.appendOscillatorNode(initialConfig, this.generators.length - 1);
             },
@@ -39,7 +39,7 @@ window.AppStateModule = {
             removeGenerator(id) {
                 audioInstance.removeGenerator(id);
                 this.generators = this.generators.filter(g => g.id !== id);
-                
+
                 // Extract instead of running structural re-render
                 window.VisualEngineModule.removeOscillatorNode(id);
             },
@@ -63,7 +63,7 @@ window.AppStateModule = {
                 fxConfig._defaults = Object.assign({}, fxConfig);
                 target.effects.push(fxConfig);
                 this.sync(genId);
-                
+
                 // Tell the specific oscillator container to draw its newly added sub-effect panel
                 any(`[data-osc-id="${genId}"]`).run(el => el.dispatchEvent(new CustomEvent('effect-added', { detail: fxConfig })));
             },

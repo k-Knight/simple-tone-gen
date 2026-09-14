@@ -131,7 +131,7 @@ class ThreadedAudioEngine {
         };
 
         // Initialize the timeline baseline slightly ahead of the current audio timeline cursor clock
-        this.nextScheduleTime = this.ctx.currentTime + 0.05; 
+        this.nextScheduleTime = this.ctx.currentTime + 0.05;
 
         // Start the high-precision asynchronous browser lookahead ticking loop
         this.startSchedulerLoop();
@@ -144,7 +144,7 @@ class ThreadedAudioEngine {
             // Compute the remaining lookahead safety time window cushion currently sitting in memory
             let currentBufferedLookaheadSeconds = this.nextScheduleTime - this.ctx.currentTime;
 
-            // Self-healing check: if playback lags or falls under target thresholds, flood requests to top up 
+            // Self-healing check: if playback lags or falls under target thresholds, flood requests to top up
             if (currentBufferedLookaheadSeconds < this.scheduleAheadTime) {
                 this.worker.postMessage({ action: 'process', bufferLength: this.bufferLength });
             }

@@ -11,8 +11,8 @@
     scope.AudioWorker.resetScopeState = function(generators, sampleRate) {
         const workerScope = typeof window !== 'undefined' ? window : self;
         workerScope.AudioWorker.scopeState = "WAIT_HALF_PERIOD";
-        
-        let lowestFreq = 50; 
+
+        let lowestFreq = 50;
         let activeGens = Array.from(generators.values()).filter(g => !g.isMuted);
         if (activeGens.length > 0) {
             lowestFreq = Math.min(...activeGens.map(g => parseFloat(g.frequency) || 50));
@@ -20,7 +20,7 @@
         if (lowestFreq < 20) lowestFreq = 20;
 
         let samplesPerPeriod = sampleRate / lowestFreq;
-        
+
         let periodsToCapture = 2;
         if (samplesPerPeriod * 2 < 500) {
             periodsToCapture = Math.ceil(500 / samplesPerPeriod);
@@ -28,7 +28,7 @@
                 periodsToCapture++;
             }
         }
-        
+
         workerScope.AudioWorker.scopeTargetSamples = Math.round(samplesPerPeriod * periodsToCapture);
     };
 
@@ -73,7 +73,7 @@
                         if (!s || s.loudness <= 0.0001) continue;
 
                         let t = evalTime - s.timeShift;
-                        
+
                         // --- EXTRACT AND CATEGORIZE EFFECTS ---
                         let activeWarpers = [];
                         let activeMultipliers = [];
@@ -93,32 +93,32 @@
                         let warpedT = t;
                         let isWarped = false;
                         let warpFx = null;
-                        
+
                         if (activeWarpers.length > 0) {
                             warpFx = activeWarpers[0];
                             const period = warpFx.warpPeriod;
                             const cutoff = warpFx.zeroCutoff;
-                            
+
                             const doublePeriod = 2 * period;
                             let localT = Math.abs(t) % doublePeriod;
                             if (localT > period) localT = doublePeriod - localT;
                             if (localT < cutoff) localT = cutoff;
-                            
+
                             warpedT = (period * cutoff) / localT;
                             isWarped = true;
                         }
 
                         // --- GENERATE AND DISPATCH AUDIO SAMPLES ---
                         let componentLeft = 0;
-                        
+
                         if (activeMultipliers.length > 0) {
                             let currentSample = workerScope.AudioWorker.getWaveSample(
-                                gen.type, 
-                                2 * Math.PI * s.frequency * (isWarped ? warpedT : t), 
-                                (isWarped ? warpedT : t), 
+                                gen.type,
+                                2 * Math.PI * s.frequency * (isWarped ? warpedT : t),
+                                (isWarped ? warpedT : t),
                                 s.frequency
                             );
-                            
+
                             for (let j = 0; j < activeMultipliers.length; j++) {
                                 const fx = activeMultipliers[j];
                                 const plugin = workerScope.AudioWorker.Plugins ? workerScope.AudioWorker.Plugins[fx.type] : null;
@@ -129,13 +129,13 @@
                                             if (subLocalT > warpFx[0].warpPeriod) {
                                                 subLocalT = (2 * warpFx[0].warpPeriod) - subLocalT;
                                             }
-                                            
+
                                             if (subLocalT < warpFx[0].zeroCutoff) {
                                                 subLocalT = warpFx[0].zeroCutoff;
                                             }
-                                            
+
                                             let subWarpedT = (warpFx[0].warpPeriod * warpFx[0].zeroCutoff) / subLocalT;
-                                            
+
                                             return workerScope.AudioWorker.getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
                                         }
                                         return workerScope.AudioWorker.getWaveSample(type, angle, subT, freq);
@@ -146,15 +146,15 @@
                         } else {
                             let finalT = isWarped ? warpedT : t;
                             let rawSample = workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * finalT, finalT, s.frequency);
-                            
+
                             if (isWarped && warpFx) {
-                                componentLeft = rawSample * warpFx.warpIntensity + 
+                                componentLeft = rawSample * warpFx.warpIntensity +
                                                 workerScope.AudioWorker.getWaveSample(gen.type, 2 * Math.PI * s.frequency * t, t, s.frequency) * (1.0 - warpFx.warpIntensity);
                             } else {
                                 componentLeft = rawSample;
                             }
                         }
-                        
+
                         let componentRight = componentLeft;
 
                         if (gen.isInverted) {
@@ -165,13 +165,13 @@
                         const mixedMonoChannel = (componentLeft + componentRight) / 2.0;
                         renderMixSum += mixedMonoChannel * s.loudness;
                     }
-                    
+
                     visualOutput[v] = isNaN(renderMixSum) ? 0.0 : renderMixSum;
                 }
 
-                self.postMessage({ 
-                    action: 'scope-update', 
-                    visualData: visualOutput 
+                self.postMessage({
+                    action: 'scope-update',
+                    visualData: visualOutput
                 }, [visualOutput.buffer]);
 
                 workerScope.AudioWorker.scopeState = "WAIT_HALF_PERIOD";
