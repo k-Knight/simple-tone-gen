@@ -123,8 +123,14 @@ window.AudioWorkerTextModule = {
                                             if (subLocalT > warpFx.warpPeriod) subLocalT = (2 * warpFx.warpPeriod) - subLocalT;
                                             if (subLocalT < warpFx.zeroCutoff) subLocalT = warpFx.zeroCutoff;
                                             let subWarpedT = (warpFx.warpPeriod * warpFx.zeroCutoff) / subLocalT;
-
-                                            return getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
+                                            
+                                            // Calculate the fully warped wet sub-voice sample
+                                            let wetSubSample = getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
+                                            // Calculate the clean dry sub-voice sample
+                                            let drySubSample = getWaveSample(type, angle, subT, freq);
+                                            
+                                            // FIXED: Blend between dry and wet sub-voices using the modulation depth parameter
+                                            return wetSubSample * warpFx.warpIntensity + drySubSample * (1.0 - warpFx.warpIntensity);
                                         }
                                         return getWaveSample(type, angle, subT, freq);
                                     }, gen.type);

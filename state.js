@@ -106,7 +106,7 @@ window.AppStateModule = {
                     fx.spreadLoudness = parseFloat(rawLoudness.toFixed(2));
                     fx.spreadMode = Math.max(0, Math.min(1, Math.round(parseFloat(fx.spreadMode)) || 0));
                 } else if (fx.type === 'hyperbolic') {
-                    fx.warpPeriod = parseFloat(Math.max(0.01, Math.min(10.0, parseFloat(fx.warpPeriod) || 0.15)).toFixed(3));
+                    fx.warpPeriod = parseFloat(Math.max(0.0001, Math.min(10.0, parseFloat(fx.warpPeriod) || 0.15)).toFixed(4));
                     fx.zeroCutoff = parseFloat(Math.max(0.001, Math.min(0.5, parseFloat(fx.zeroCutoff) || 0.030)).toFixed(4));
                     fx.warpIntensity = parseFloat(Math.max(0.0, Math.min(1.0, parseFloat(fx.warpIntensity) || 0.75)).toFixed(2));
                 }

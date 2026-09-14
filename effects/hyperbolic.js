@@ -4,11 +4,8 @@ window.Effect_Hyperbolic = {
     theme: 'rose',
 
     knobs: [
-        // Changed: min updated to 0.01, max to 10, default to 0.15, and isLog to true
-        { key: 'warpPeriod', label: 'Warp Period Time', min: 0.01, max: 10.0, step: 0.001, isLog: true, unit: 'Sec' },
-        // Changed: default updated to 0.030
+        { key: 'warpPeriod', label: 'Warp Period Time', min: 0.0001, max: 10.0, step: 0.0001, isLog: true, unit: 'Sec' },
         { key: 'zeroCutoff', label: 'Zero Chaos Cutoff', min: 0.001, max: 0.5, step: 0.001, isLog: true, unit: 'Cut' },
-        // Changed: default updated to 0.75
         { key: 'warpIntensity', label: 'Modulation Depth', min: 0.0, max: 1.0, step: 0.01, isLog: false, unit: 'Mix' }
     ],
 

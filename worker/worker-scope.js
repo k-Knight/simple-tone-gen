@@ -124,19 +124,16 @@
                                 const plugin = workerScope.AudioWorker.Plugins ? workerScope.AudioWorker.Plugins[fx.type] : null;
                                 if (plugin) {
                                     currentSample = plugin.process(currentSample, t, s, fx, (type, angle, subT, freq) => {
-                                        if (isWarped && warpFx && warpFx[0]) {
-                                            let subLocalT = Math.abs(subT) % (2 * warpFx[0].warpPeriod);
-                                            if (subLocalT > warpFx[0].warpPeriod) {
-                                                subLocalT = (2 * warpFx[0].warpPeriod) - subLocalT;
-                                            }
-
-                                            if (subLocalT < warpFx[0].zeroCutoff) {
-                                                subLocalT = warpFx[0].zeroCutoff;
-                                            }
-
-                                            let subWarpedT = (warpFx[0].warpPeriod * warpFx[0].zeroCutoff) / subLocalT;
-
-                                            return workerScope.AudioWorker.getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
+                                        if (isWarped && warpFx) {
+                                            let subLocalT = Math.abs(subT) % (2 * warpFx.warpPeriod);
+                                            if (subLocalT > warpFx.warpPeriod) subLocalT = (2 * warpFx.warpPeriod) - subLocalT;
+                                            if (subLocalT < warpFx.zeroCutoff) subLocalT = warpFx.zeroCutoff;
+                                            let subWarpedT = (warpFx.warpPeriod * warpFx.zeroCutoff) / subLocalT;
+                                            
+                                            let wetSubSample = workerScope.AudioWorker.getWaveSample(type, 2 * Math.PI * freq * subWarpedT, subWarpedT, freq);
+                                            let drySubSample = workerScope.AudioWorker.getWaveSample(type, angle, subT, freq);
+                                            
+                                            return wetSubSample * warpFx.warpIntensity + drySubSample * (1.0 - warpFx.warpIntensity);
                                         }
                                         return workerScope.AudioWorker.getWaveSample(type, angle, subT, freq);
                                     }, gen.type);
