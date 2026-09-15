@@ -20,14 +20,38 @@ window.AudioDspUtils = {
         }
     },
 
-    getLowestActiveFrequency(generators) {
-        let lowestFreq = 50;
-        for (let [_, gen] of generators) {
-            if (!gen.isMuted) {
-                lowestFreq = Math.min(lowestFreq, parseFloat(gen.frequency) || 50);
+    getLowestActiveFrequency(engineState) {
+        let lowestFreq = 20000;
+        let hasActiveGen = false;
+
+        if (!engineState || !engineState.generators || !engineState.smoothState) {
+            return 20;
+        }
+
+        for (let [genId, gen] of engineState.generators) {
+            const s = engineState.smoothState.get(genId);
+
+            if (!gen.isMuted && s && s.loudness > 0.0001) {
+                lowestFreq = Math.min(lowestFreq, parseFloat(s.frequency) || 20);
+                hasActiveGen = true;
             }
         }
-        return lowestFreq < 20 ? 20 : lowestFreq;
+
+        if (!hasActiveGen || lowestFreq < 20) {
+            return 20;
+        }
+
+        const baselineHzAnchor = 256;
+
+        if (lowestFreq > baselineHzAnchor) {
+            const octavesPastBaseline = Math.log2(lowestFreq / baselineHzAnchor);
+            
+            const scalarDivisor = lowestFreq / baselineHzAnchor;
+            
+            lowestFreq = lowestFreq / scalarDivisor;
+        }
+
+        return lowestFreq;
     },
 
     getHyperbolicMasterPeriod(generators) {

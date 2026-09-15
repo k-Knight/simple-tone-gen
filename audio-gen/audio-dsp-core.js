@@ -9,12 +9,7 @@ window.AudioDspModule = {
         }
 
         utils.initGlobalWarpTimeline(engineState);
-        
-        const lowestFreq = utils.getLowestActiveFrequency(engineState.generators);
         const targetPeriod = utils.getHyperbolicMasterPeriod(engineState.generators);
-        
-        const samplesPerPeriod = sampleRate / lowestFreq;
-        const totalDisplaySamples = Math.round(samplesPerPeriod * 2);
 
         for (let i = 0; i < bufferLength; i++) {
             let masterLeftSample = 0;
@@ -46,7 +41,6 @@ window.AudioDspModule = {
 
                 const warp = effects.processHyperbolicWarp(engineState, s, activeWarpers, sharedPeriod, baseT);
 
-                // FIXED: Forwarded engineState into the method call arguments below
                 let voiceSampleLeft = effects.processMultiVoiceEffects(
                     engineState, gen, s, activeMultipliers, warp, sharedPeriod, baseT, sampleRate, getWaveSample
                 );
@@ -63,13 +57,50 @@ window.AudioDspModule = {
             leftChannel[i] = masterLeftSample;
             rightChannel[i] = masterRightSample;
 
-            const currentPositionInCycle = engineState.phaseTimeline % totalDisplaySamples;
-            const visualIndex = Math.floor((currentPositionInCycle / totalDisplaySamples) * 800);
-            if (visualIndex >= 0 && visualIndex < 800) {
-                engineState.visualBuffer[visualIndex] = masterLeftSample;
+            if (!engineState.scopeRingBuffer) {
+                engineState.scopeRingBuffer = new Float32Array(2048);
+                engineState.scopeRingWritePtr = 0;
             }
 
+            engineState.scopeRingBuffer[engineState.scopeRingWritePtr] = masterLeftSample;
+            engineState.scopeRingWritePtr = (engineState.scopeRingWritePtr + 1) % 2048;
+
             engineState.phaseTimeline++;
+        }
+
+        const lowestFreq = utils.getLowestActiveFrequency(engineState);
+        const samplesPerPeriod = sampleRate / lowestFreq;
+        const totalDisplaySamples = Math.round(samplesPerPeriod * 2);
+
+        const ring = engineState.scopeRingBuffer;
+        const writePtr = engineState.scopeRingWritePtr;
+
+        let triggerIndex = (writePtr - totalDisplaySamples + 2048) % 2048;
+        
+        for (let j = 0; j < 512; j++) {
+            let idx = (writePtr - totalDisplaySamples - j + 2048) % 2048;
+            let idxNext = (idx + 1) % 2048;
+            
+            if (ring[idx] <= 0.0 && ring[idxNext] > 0.0) {
+                triggerIndex = idxNext;
+                break;
+            }
+        }
+
+        for (let v = 0; v < 800; v++) {
+            let fraction = v / 799;
+            
+            let targetSampleOffset = fraction * totalDisplaySamples;
+            let baseIndexOffset = Math.floor(targetSampleOffset);
+            let interpFactor = targetSampleOffset - baseIndexOffset;
+
+            let sampleIdx1 = (triggerIndex + baseIndexOffset) % 2048;
+            let sampleIdx2 = (sampleIdx1 + 1) % 2048;
+
+            let s1 = ring[sampleIdx1];
+            let s2 = ring[sampleIdx2];
+
+            engineState.visualBuffer[v] = s1 + (s2 - s1) * interpFactor;
         }
     }
 };
