@@ -14,12 +14,11 @@ window.ComponentModule_EffectPanels = {
             <div data-fx-id="${fx.id}" class="p-4 bg-zinc-950/40 border border-${plugin.theme}-900/30 rounded-xl space-y-3 mt-2">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-mono text-${plugin.theme}-400 font-bold uppercase tracking-wider">${plugin.label}</span>
-                    <button onClick=${() => appStateInstance.removeEffect(gen.id, fx.id)} class="text-zinc-500 hover:text-rose-400 p-1 flex items-center justify-center hover:bg-zinc-800 rounded-md w-7 h-7 cursor-pointer">
+                    <button onClick=${() => appStateInstance.removeEffect(gen.id, fx.id)} class="flex items-center justify-center p-1 w-7 h-7 text-zinc-500 hover:text-rose-400 bg-zinc-800/40 hover:bg-rose-800/40 border border-zinc-700/60 hover:border-rose-600 rounded-md transition-all cursor-pointer shadow-sm">
                         ${icons.remove}
                     </button>
                 </div>
-                <!-- FIXED: Replaced grid-cols-1 sm:grid-cols-3 with an auto-fit minmax configuration -->
-                <div class="grid grid-cols-[repeat(auto-fit,minmax(90px,1fr))] gap-3 justify-center">
+                <div class="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3 justify-center">
                     ${plugin.knobs.map(k => {
                         const finalMin = k.min === 'dynamic' ? -T : k.min;
                         const finalMax = k.max === 'dynamic' ? T : k.max;

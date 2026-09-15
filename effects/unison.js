@@ -7,7 +7,7 @@ window.Effect_Unison = {
     knobs: [
         { key: 'superDetune', label: 'Detune Width', min: 0, max: 20, step: 0.01, isLog: false, unit: 'Hz' },
         { key: 'superLoudness', label: 'Unison Gain', min: 0, max: 2, step: 0.01, isLog: false, unit: 'Vol' },
-        { key: 'superMode', label: 'Voice Phase', min: 0, max: 2, step: 1, isLog: false, unit: 'Mode' }
+        { key: 'superMode', label: 'Voice Phase', min: 0, max: 2, step: 1, isLog: false, unit: 'Mode', resetState: true }
     ],
 
     // Default structural schema payload boundaries

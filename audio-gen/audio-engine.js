@@ -3,25 +3,32 @@ class UnifiedAudioEngine {
         this.ctx = null;
         this.bufferLength = 2048;
         this.savedMasterVolume = 0.5;
+        this.masterVolumeLevel = 0.5;
 
-        // Context Engine State
         this.generators = new Map();
         this.smoothState = new Map();
         this.phaseTimeline = 0;
 
-        // WAV Recording Registers
         this.isRecording = false;
         this.recordedLeft = [];
         this.recordedRight = [];
         this.maxRecordSamples = 0;
         this.currentRecordSeconds = 2;
 
-        // Scheduler Properties
         this.nextScheduleTime = 0.0;
         this.lookAheadInterval = 25;
         this.scheduleAheadTime = 0.12;
         this.schedulerTimer = null;
         this.activeSourcesPool = new Set();
+
+        this.pendingUpdates = new Map()
+    }
+
+    setMasterVolume(val) {
+        this.masterVolumeLevel = parseFloat(val);
+        if (this.masterGainNode && this.masterGainNode.gain && this.ctx) {
+            this.masterGainNode.gain.setValueAtTime(this.masterVolumeLevel, this.ctx.currentTime);
+        }
     }
 
     init() {
@@ -42,6 +49,10 @@ class UnifiedAudioEngine {
 
         this.nextScheduleTime = this.ctx.currentTime + 0.05;
         this.startSchedulerLoop();
+
+        this.masterGainNode = this.ctx.createGain();
+        this.masterGainNode.gain.setValueAtTime(this.masterVolumeLevel, this.ctx.currentTime);
+        this.masterGainNode.connect(this.ctx.destination);
     }
 
     startSchedulerLoop() {
@@ -58,10 +69,16 @@ class UnifiedAudioEngine {
     }
 
     calculateAndScheduleBlock() {
+        if (this.pendingUpdates.size > 0) {
+            for (let [id, cleanParams] of this.pendingUpdates) {
+                this.generators.set(id, cleanParams);
+            }
+            this.pendingUpdates.clear();
+        }
+
         const leftChannel = new Float32Array(this.bufferLength);
         const rightChannel = new Float32Array(this.bufferLength);
 
-        // Forward state context over to the isolated DSP module math loop
         window.AudioDspModule.calculateBlock(this, this.bufferLength, leftChannel, rightChannel, 48000);
 
         if (this.isRecording) {
@@ -92,12 +109,34 @@ class UnifiedAudioEngine {
         this.nextScheduleTime += (this.bufferLength / this.ctx.sampleRate);
     }
 
-    startRecording(seconds) {
+    restartSimulation() {
+        if (this.ctx) {
+            try { this.ctx.close(); } catch (e) { }
+            this.ctx = null;
+        }
+        this.analyser = null;
+
+        this.phaseTimeline = 0;
+        this.globalWarpPhase = 0;
+        this.globalWarpDirection = 1;
+        this.smoothWarpPeriod = 0.15;
+        this.smoothState.clear();
+        this.visualBuffer = new Float32Array(800);
+
+        this.savedMasterVolume = this.masterVolumeLevel;
         this.init();
+    }
+
+    startRecording(seconds) {
+        this.restartSimulation();
         this.currentRecordSeconds = seconds;
         this.recordedLeft = [];
         this.recordedRight = [];
         this.maxRecordSamples = seconds * 48000;
+
+        this.phaseTimeline = 0;
+        this.smoothState.clear();
+
         this.isRecording = true;
     }
 
@@ -149,12 +188,7 @@ class UnifiedAudioEngine {
     }
 
     updateGenerator(id, p) {
-        this.init();
-        this.generators.set(id, JSON.parse(JSON.stringify(p)));
-
-        if (window.AudioWorker && window.AudioWorker.resetScopeState) {
-            window.AudioWorker.resetScopeState(this.generators, 48000);
-        }
+        this.pendingUpdates.set(id, JSON.parse(JSON.stringify(p)));
     }
     removeGenerator(id) {
         this.generators.delete(id);

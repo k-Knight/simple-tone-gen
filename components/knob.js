@@ -24,7 +24,7 @@ window.ComponentModule_Knob = {
         const initialValue = targetObj[key];
 
         const knobEl = html`
-            <div class="knob-container-block flex flex-col items-center p-3 ${accentBg} border border-zinc-800/40 rounded-xl relative group w-full max-w-[180px] mx-auto">
+            <div class="knob-container-block flex flex-col items-center p-3 ${accentBg} border border-zinc-800/40 rounded-xl relative group w-full min-w-[120px] max-w-[180px] mx-auto">
                 <button class="reset-knob-btn absolute top-1.5 left-1.5 p-0.5 text-zinc-500 ${resetHoverColorClass} bg-zinc-900/50 hover:bg-zinc-800 rounded border border-zinc-800 transition-all opacity-40 group-hover:opacity-100 flex items-center justify-center cursor-pointer z-10 w-5 h-5" title="Reset to default">
                     ${icons.reset}
                 </button>

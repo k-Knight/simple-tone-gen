@@ -2,7 +2,7 @@ window.AppStateModule = {
     create(audioInstance) {
         const state = {
             generators: [],
-            waveTypes: ['sine', 'sawtooth', 'square', 'triangle'],
+            waveTypes: ['sine', 'sawtooth', 'square', 'triangle', 'sharktooth', 'scallop', 'sharkfin', 'camel', 'razorback', 'trapezoid'],
             masterVolume: 0.5,
             recordDuration: 2,
             isRecording: false,
@@ -88,6 +88,8 @@ window.AppStateModule = {
                         audioInstance.masterGain.gain.cancelScheduledValues(now);
                         audioInstance.masterGain.gain.linearRampToValueAtTime(val, now + 0.005);
                     }
+
+                    audioInstance.setMasterVolume(this.masterVolume);
 
                     const labelEl = document.getElementById('masterVolumeLabel');
                     if (labelEl) {

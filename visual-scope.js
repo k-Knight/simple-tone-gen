@@ -4,52 +4,65 @@ window.VisualScopeModule = {
         if (!canvas) { requestAnimationFrame(() => this.draw(audioInstance)); return; }
         const ctx = canvas.getContext('2d');
 
+        const VISUAL_POINTS = 800; 
+
         const renderLoop = () => {
             requestAnimationFrame(renderLoop);
             if (!canvas) return;
+
             if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
                 canvas.width = canvas.clientWidth;
                 canvas.height = canvas.clientHeight;
             }
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Center horizontal guide line
             ctx.strokeStyle = '#1e1e24'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
 
-            if (audioInstance.isFlushing) {
-                ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2.5;
-                ctx.beginPath(); ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
-                return;
-            }
-            if (audioInstance.scopeFrameQueue?.length > 0) {
-                if (audioInstance.scopeFrameQueue.length > 2) {
-                    audioInstance.latestScopeFrame = audioInstance.scopeFrameQueue[audioInstance.scopeFrameQueue.length - 1];
-                    audioInstance.scopeFrameQueue = [];
-                } else {
-                    audioInstance.latestScopeFrame = audioInstance.scopeFrameQueue.shift();
-                }
-            }
-            if (audioInstance.latestScopeFrame) {
-                const dataArray = audioInstance.latestScopeFrame;
+            // Check if our pre-calculated engine array is ready
+            if (audioInstance.visualBuffer) {
+                const buffer = audioInstance.visualBuffer;
+
+                // --- AUTOMATIC VOLTAGE INDEPENDENT NORMALIZATION ---
+                // Scan the pre-calculated points to find the absolute maximum peak height
                 let maxVal = 0;
-                for (let i = 0; i < dataArray.length; i++) {
-                    let absVal = Math.abs(dataArray[i]);
+                for (let i = 0; i < VISUAL_POINTS; i++) {
+                    const absVal = Math.abs(buffer[i]);
                     if (absVal > maxVal) maxVal = absVal;
                 }
-                let visualGain = maxVal > 0.001 ? (0.75 / maxVal) : 1.0;
-                if (visualGain > 15) visualGain = 15;
 
+                // Auto-zoom scaling multiplier
+                let visualGain = maxVal > 0.001 ? (0.75 / maxVal) : 1.0;
+                if (visualGain > 15.0) visualGain = 15.0; // Prevent noise lines from blowing up when muted
+
+                // --- DRAW PURE ARRAY POINTS ---
                 ctx.strokeStyle = '#38f8e2'; ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 ctx.beginPath();
-                const displayPoints = dataArray.length;
-                const sliceWidth = canvas.width / (displayPoints - 1);
+
+                const sliceWidth = canvas.width / (VISUAL_POINTS - 1);
                 let x = 0;
-                for (let i = 0; i < displayPoints; i++) {
-                    let y = canvas.height / 2 + ((-dataArray[i] * visualGain) * (canvas.height / 2));
+
+                for (let i = 0; i < VISUAL_POINTS; i++) {
+                    // Extract pre-computed sample heights and apply our gain multiplier
+                    const scaledSample = buffer[i] * visualGain;
+                    
+                    // Invert height so positive amplitudes rise cleanly upwards
+                    let y = (canvas.height / 2) - (scaledSample * (canvas.height / 2));
+
                     if (isNaN(y)) y = canvas.height / 2;
                     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    
                     x += sliceWidth;
                 }
                 ctx.stroke();
+            } else {
+                // Flatline fallback until the engine starts
+                ctx.strokeStyle = '#38f8e2'; ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
             }
         };
         renderLoop();

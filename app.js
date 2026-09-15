@@ -62,6 +62,7 @@ window.html = function(strings, ...values) {
 };
 
 any(document).on('DOMContentLoaded', () => {
+    window.audio = audio;
     window.AppState = window.AppStateModule.create(audio);
     window.AppState.init();
 });

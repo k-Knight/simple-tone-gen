@@ -4,10 +4,9 @@ window.Effect_TimeSpread = {
     theme: 'cyan',
 
     knobs: [
-        // step will be calculated dynamically based on target frequency or left fallback
         { key: 'spreadTime', label: 'Haas Time Shift', min: 'dynamic', max: 'dynamic', step: 'dynamic', isLog: false, unit: 'Sec' },
         { key: 'spreadLoudness', label: 'Spread Voice Gain', min: 0, max: 2, step: 0.01, isLog: false, unit: 'Vol' },
-        { key: 'spreadMode', label: 'Voice Density', min: 0, max: 1, step: 1, isLog: false, unit: 'Vcs' }
+        { key: 'spreadMode', label: 'Voice Density', min: 0, max: 1, step: 1, isLog: false, unit: 'Vcs', resetState: true }
     ],
 
     getDefaults(fxId) {
@@ -25,17 +24,24 @@ window.Effect_TimeSpread = {
         const mode = Math.round(fx.spreadMode);
         let subOscillationMix = 0;
 
+        const baseAngle = 2 * Math.PI * s.frequency * baseT;
+        const phaseRotationOffset = 2 * Math.PI * s.frequency * fx.spreadTime;
+
         if (mode === 0) {
-            let tOffset = baseT - fx.spreadTime;
-            subOscillationMix = getWaveSample(waveType, 2 * Math.PI * s.frequency * tOffset, tOffset, s.frequency) * fx.spreadLoudness;
+            let rotatedAngle = baseAngle - phaseRotationOffset;
+            // FIXED: Pass an explicit 'M' (Mono/Single Spread) token as a 5th parameter flag hint
+            subOscillationMix = getWaveSample(waveType, rotatedAngle, baseT, s.frequency, "M") * fx.spreadLoudness;
         } else {
-            let tPlus = baseT - fx.spreadTime;
-            let tMinus = baseT + fx.spreadTime;
-            let v1 = getWaveSample(waveType, 2 * Math.PI * s.frequency * tPlus, tPlus, s.frequency);
-            let v2 = getWaveSample(waveType, 2 * Math.PI * s.frequency * tMinus, tMinus, s.frequency);
+            let rotatedAnglePlus = baseAngle - phaseRotationOffset;
+            let rotatedAngleMinus = baseAngle + phaseRotationOffset;
+
+            // FIXED: Pass explicit 'L' and 'R' channel token identifiers down into the sub-calls
+            let v1 = getWaveSample(waveType, rotatedAnglePlus, baseT, s.frequency, "L");
+            let v2 = getWaveSample(waveType, rotatedAngleMinus, baseT, s.frequency, "R");
             subOscillationMix = ((v1 + v2) / 2.0) * fx.spreadLoudness;
         }
 
         return (sample + subOscillationMix) / (1.0 + fx.spreadLoudness);
     }
+
 };
