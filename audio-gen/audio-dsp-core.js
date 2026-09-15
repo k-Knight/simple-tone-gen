@@ -77,13 +77,22 @@ window.AudioDspModule = {
 
         let triggerIndex = (writePtr - totalDisplaySamples + 2048) % 2048;
         
+        // FIXED: Implement Hysteresis Tracking to stop micro-ripples from hijacking the trigger anchor.
+        // We find the steepest upward crossing velocity inside the trailing buffer register window.
+        let maxCrossingSlope = -1;
+
         for (let j = 0; j < 512; j++) {
             let idx = (writePtr - totalDisplaySamples - j + 2048) % 2048;
             let idxNext = (idx + 1) % 2048;
             
             if (ring[idx] <= 0.0 && ring[idxNext] > 0.0) {
-                triggerIndex = idxNext;
-                break;
+                let currentSlopeVelocity = ring[idxNext] - ring[idx];
+                
+                // If this crossing has a much steeper upward velocity curve, it belongs to the dominant fundamental note
+                if (currentSlopeVelocity > maxCrossingSlope) {
+                    maxCrossingSlope = currentSlopeVelocity;
+                    triggerIndex = idxNext;
+                }
             }
         }
 
