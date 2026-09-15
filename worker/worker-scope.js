@@ -105,7 +105,7 @@
                             if (localT < cutoff) localT = cutoff;
 
                             let rawWarpedT = (period * cutoff) / localT;
-                            
+
                             // Proportional timeline crossfade for the visual tracer
                             warpedT = rawWarpedT * warpFx.warpIntensity + t * (1.0 - warpFx.warpIntensity);
                             isWarped = true;
@@ -124,17 +124,20 @@
 
                             for (let j = 0; j < activeMultipliers.length; j++) {
                                 const fx = activeMultipliers[j];
-                                const plugin = workerScope.AudioWorker.Plugins ? workerScope.AudioWorker.Plugins[fx.type] : null;
-                                if (plugin) {
+                                const plugin = (window.EffectRegistry && typeof window.EffectRegistry.get === 'function')
+                                    ? window.EffectRegistry.get(fx.type)
+                                    : null;
+
+                                if (plugin && typeof plugin.process === 'function') {
                                     currentSample = plugin.process(currentSample, t, s, fx, (type, angle, subT, freq) => {
                                         if (isWarped && warpFx) {
                                             let subLocalT = Math.abs(subT) % (2 * warpFx.warpPeriod);
                                             if (subLocalT > warpFx.warpPeriod) subLocalT = (2 * warpFx.warpPeriod) - subLocalT;
                                             if (subLocalT < warpFx.zeroCutoff) subLocalT = warpFx.zeroCutoff;
-                                            
+
                                             let rawSubWarpedT = (warpFx.warpPeriod * warpFx.zeroCutoff) / subLocalT;
                                             let finalSubWarpedT = rawSubWarpedT * warpFx.warpIntensity + subT * (1.0 - warpFx.warpIntensity);
-                                            
+
                                             return workerScope.AudioWorker.getWaveSample(type, 2 * Math.PI * freq * finalSubWarpedT, finalSubWarpedT, freq);
                                         }
                                         return workerScope.AudioWorker.getWaveSample(type, angle, subT, freq);
@@ -160,10 +163,10 @@
                     visualOutput[v] = isNaN(renderMixSum) ? 0.0 : renderMixSum;
                 }
 
-                self.postMessage({
-                    action: 'scope-update',
-                    visualData: visualOutput
-                }, [visualOutput.buffer]);
+                if (!audio.scopeFrameQueue) {
+                    audio.scopeFrameQueue = [];
+                }
+                audio.scopeFrameQueue.push(visualOutput);
 
                 workerScope.AudioWorker.scopeState = "WAIT_HALF_PERIOD";
             }

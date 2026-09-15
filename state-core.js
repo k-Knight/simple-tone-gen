@@ -21,7 +21,10 @@ window.AppStateModule = {
                 });
 
                 this.buildBaseShell();
-                window.VisualScopeModule.draw(audioInstance);
+
+                if (window.VisualScopeModule && window.VisualScopeModule.draw) {
+                    window.VisualScopeModule.draw(audioInstance);
+                }
             },
 
             buildBaseShell() {
@@ -55,7 +58,7 @@ window.AppStateModule = {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- FIXED: Swapped out sky colors for dark background variables, and added self-stretch for full vertical height -->
                                     <button id="addOscillatorButton" class="px-4 py-2 bg-zinc-900 border border-sky-800 text-sky-400 hover:bg-zinc-800 hover:border-sky-700 font-bold text-xs rounded-xl uppercase tracking-wide flex items-center gap-1.5 self-stretch transition-colors cursor-pointer">
                                         <div class="flex items-center justify-center">${icons.add}</div> Add Oscillator
