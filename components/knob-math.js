@@ -16,10 +16,11 @@ window.ComponentModule_KnobMath = {
         if (isLog && value > 0) {
             const absCalc = Math.abs(value);
             if (absCalc >= 1000) return 0;
-            if (absCalc > 10) return 1;
-            if (absCalc > 1) return 2;
-            if (absCalc > 0.1) return 3;
-            return 4;
+            if (absCalc > 100) return 1;
+            if (absCalc > 10) return 2;
+            if (absCalc > 1) return 3;
+            if (absCalc > 0.1) return 5;
+            return 5;
         }
         return stepDecimals;
     },

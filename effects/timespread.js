@@ -20,28 +20,27 @@ window.Effect_TimeSpread = {
         fx.spreadMode = Math.max(0, Math.min(1, Math.round(parseFloat(fx.spreadMode)) || 0));
     },
 
-    process(sample, baseT, s, fx, getWaveSample, waveType) {
+    process(ctx) {
+        const { sample, baseT, smoothState, fx, getWaveSample, waveType } = ctx;
+
         const mode = Math.round(fx.spreadMode);
         let subOscillationMix = 0;
 
-        const baseAngle = 2 * Math.PI * s.frequency * baseT;
-        const phaseRotationOffset = 2 * Math.PI * s.frequency * fx.spreadTime;
+        const baseAngle = 2 * Math.PI * smoothState.frequency * baseT;
+        const phaseRotationOffset = 2 * Math.PI * smoothState.frequency * fx.spreadTime;
 
         if (mode === 0) {
             let rotatedAngle = baseAngle - phaseRotationOffset;
-            // FIXED: Pass an explicit 'M' (Mono/Single Spread) token as a 5th parameter flag hint
-            subOscillationMix = getWaveSample(waveType, rotatedAngle, baseT, s.frequency, "M") * fx.spreadLoudness;
+            subOscillationMix = getWaveSample(waveType, rotatedAngle, baseT, smoothState.frequency, "M") * fx.spreadLoudness;
         } else {
             let rotatedAnglePlus = baseAngle - phaseRotationOffset;
             let rotatedAngleMinus = baseAngle + phaseRotationOffset;
 
-            // FIXED: Pass explicit 'L' and 'R' channel token identifiers down into the sub-calls
-            let v1 = getWaveSample(waveType, rotatedAnglePlus, baseT, s.frequency, "L");
-            let v2 = getWaveSample(waveType, rotatedAngleMinus, baseT, s.frequency, "R");
+            let v1 = getWaveSample(waveType, rotatedAnglePlus, baseT, smoothState.frequency, "L");
+            let v2 = getWaveSample(waveType, rotatedAngleMinus, baseT, smoothState.frequency, "R");
             subOscillationMix = ((v1 + v2) / 2.0) * fx.spreadLoudness;
         }
 
         return (sample + subOscillationMix) / (1.0 + fx.spreadLoudness);
     }
-
 };

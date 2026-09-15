@@ -37,12 +37,17 @@ window.AudioDspModule = {
                 s.phaseAccumulator %= (2 * Math.PI);
 
                 const baseT = (engineState.phaseTimeline / sampleRate) - s.timeShift;
-                const { activeWarpers, activeMultipliers } = utils.categorizeEffects(gen.effects);
 
-                const warp = effects.processHyperbolicWarp(engineState, s, activeWarpers, sharedPeriod, baseT);
-
+                // FIX: Pipe all effects sequentially into the unified processor
                 let voiceSampleLeft = effects.processMultiVoiceEffects(
-                    engineState, gen, s, activeMultipliers, warp, sharedPeriod, baseT, sampleRate, getWaveSample
+                    engineState, 
+                    gen, 
+                    s, 
+                    gen.effects, 
+                    sharedPeriod, 
+                    baseT, 
+                    sampleRate, 
+                    getWaveSample
                 );
 
                 if (gen.isInverted) {
@@ -77,8 +82,6 @@ window.AudioDspModule = {
 
         let triggerIndex = (writePtr - totalDisplaySamples + 2048) % 2048;
         
-        // FIXED: Implement Hysteresis Tracking to stop micro-ripples from hijacking the trigger anchor.
-        // We find the steepest upward crossing velocity inside the trailing buffer register window.
         let maxCrossingSlope = -1;
 
         for (let j = 0; j < 512; j++) {
@@ -88,7 +91,6 @@ window.AudioDspModule = {
             if (ring[idx] <= 0.0 && ring[idxNext] > 0.0) {
                 let currentSlopeVelocity = ring[idxNext] - ring[idx];
                 
-                // If this crossing has a much steeper upward velocity curve, it belongs to the dominant fundamental note
                 if (currentSlopeVelocity > maxCrossingSlope) {
                     maxCrossingSlope = currentSlopeVelocity;
                     triggerIndex = idxNext;

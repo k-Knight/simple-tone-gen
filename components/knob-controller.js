@@ -50,7 +50,7 @@ window.ComponentModule_KnobController = {
 
             let startPct;
             if (isLog && min > 0 && max > 0) {
-                const safeMin = min <= 0 ? 0.001 : min;
+                const safeMin = min <= 0 ? 0.00001 : min;
                 const safeVal = startVal <= 0 ? safeMin : startVal;
                 startPct = (Math.log(safeVal) - Math.log(safeMin)) / (Math.log(max) - Math.log(safeMin));
             } else {
