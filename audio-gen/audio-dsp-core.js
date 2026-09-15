@@ -38,7 +38,6 @@ window.AudioDspModule = {
 
                 const baseT = (engineState.phaseTimeline / sampleRate) - s.timeShift;
 
-                // FIX: Pipe all effects sequentially into the unified processor
                 let voiceSampleLeft = effects.processMultiVoiceEffects(
                     engineState, 
                     gen, 
@@ -74,44 +73,44 @@ window.AudioDspModule = {
         }
 
         const lowestFreq = utils.getLowestActiveFrequency(engineState);
-        const samplesPerPeriod = sampleRate / lowestFreq;
-        const totalDisplaySamples = Math.round(samplesPerPeriod * 2);
 
-        const ring = engineState.scopeRingBuffer;
-        const writePtr = engineState.scopeRingWritePtr;
+        let samplesPerPeriod = sampleRate / lowestFreq;
 
-        let triggerIndex = (writePtr - totalDisplaySamples + 2048) % 2048;
-        
-        let maxCrossingSlope = -1;
-
-        for (let j = 0; j < 512; j++) {
-            let idx = (writePtr - totalDisplaySamples - j + 2048) % 2048;
-            let idxNext = (idx + 1) % 2048;
-            
-            if (ring[idx] <= 0.0 && ring[idxNext] > 0.0) {
-                let currentSlopeVelocity = ring[idxNext] - ring[idx];
-                
-                if (currentSlopeVelocity > maxCrossingSlope) {
-                    maxCrossingSlope = currentSlopeVelocity;
-                    triggerIndex = idxNext;
-                }
-            }
+        const baselineHzAnchor = 256;
+        if (lowestFreq > baselineHzAnchor) {
+            const octavesPast = Math.ceil(Math.log2(lowestFreq / baselineHzAnchor));
+            samplesPerPeriod = samplesPerPeriod * Math.pow(2, octavesPast);
         }
 
+        const totalDisplaySamples = samplesPerPeriod * 2.0;
+        const bufferTime = bufferLength * (1.0/sampleRate);
+        const carryOverTime = engineState.carryOverTime || 0;
+        const triggerStartOffset = bufferLength * (carryOverTime / bufferTime);
+
         for (let v = 0; v < 800; v++) {
-            let fraction = v / 799;
+            const fraction = v / 799;
             
-            let targetSampleOffset = fraction * totalDisplaySamples;
-            let baseIndexOffset = Math.floor(targetSampleOffset);
-            let interpFactor = targetSampleOffset - baseIndexOffset;
+            const targetSampleOffset = triggerStartOffset + (fraction * totalDisplaySamples);
+            
+            const sampleIdx1 = Math.max(0, Math.min(bufferLength - 1, Math.floor(targetSampleOffset)));
+            const sampleIdx2 = Math.max(0, Math.min(bufferLength - 1, sampleIdx1 + 1));
+            
+            const interpFactor = targetSampleOffset - sampleIdx1;
 
-            let sampleIdx1 = (triggerIndex + baseIndexOffset) % 2048;
-            let sampleIdx2 = (sampleIdx1 + 1) % 2048;
-
-            let s1 = ring[sampleIdx1];
-            let s2 = ring[sampleIdx2];
+            const s1 = leftChannel[sampleIdx1];
+            const s2 = leftChannel[sampleIdx2];
 
             engineState.visualBuffer[v] = s1 + (s2 - s1) * interpFactor;
         }
+
+        const bufferRemainingTime = bufferTime - carryOverTime;
+        const periodTime = (1.0/lowestFreq);
+        const periodsInBuffer = bufferRemainingTime / periodTime;
+        const carryOverPeriodPart = Math.ceil(periodsInBuffer) - periodsInBuffer;
+        let carryOverTimeNew = carryOverPeriodPart * periodTime;
+
+        if (carryOverTimeNew > periodTime) carryOverTimeNew -= periodTime;
+
+        engineState.carryOverTime = carryOverTimeNew;
     }
 };

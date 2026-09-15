@@ -41,16 +41,6 @@ window.AudioDspUtils = {
             return 20;
         }
 
-        const baselineHzAnchor = 256;
-
-        if (lowestFreq > baselineHzAnchor) {
-            const octavesPastBaseline = Math.log2(lowestFreq / baselineHzAnchor);
-            
-            const scalarDivisor = lowestFreq / baselineHzAnchor;
-            
-            lowestFreq = lowestFreq / scalarDivisor;
-        }
-
         return lowestFreq;
     },
 
