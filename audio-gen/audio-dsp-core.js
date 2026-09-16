@@ -30,6 +30,8 @@ window.AudioDspModule = {
                 s.loudness += (gen.loudness - s.loudness) * 0.002;
                 s.pan += (gen.pan - s.pan) * 0.002;
                 s.timeShift += (gen.timeShift - s.timeShift) * 0.002;
+                s.k += (gen.k - s.k) * 0.002;
+                s.pow += (gen.pow - s.pow) * 0.002;
 
                 if (s.loudness <= 0.0001) continue;
 

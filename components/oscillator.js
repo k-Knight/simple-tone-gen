@@ -55,6 +55,8 @@ window.ComponentModule_Oscillator = {
                         ${knob(gen, 'loudness', 'Loudness', 0, 1, 0.01, false, '%', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'pan', 'Balance', -1, 1, 0.01, false, 'Bal', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'timeShift', 'Time Shift', 0, 0.05, 0.0001, false, 'Sec', () => appStateInstance.sync(gen.id), 'cyan')}
+                        ${knob(gen, 'k', 'Modifier', 0, 100, 0.01, true, 'k', () => appStateInstance.sync(gen.id), 'cyan')}
+                        ${knob(gen, 'pow', 'Exponent', 0, 10, 0.01, true, 'pow', () => appStateInstance.sync(gen.id), 'cyan')}
                     </div>
 
                     <div class="mt-4 pt-4 border-t border-zinc-800/50 space-y-3">

@@ -36,7 +36,7 @@ window.Effect_Hyperbolic = {
         let targetAngle = 2 * Math.PI * smoothState.frequency * warpedT;
 
         // Generate the replacement warped asset sample point directly here
-        const warpedSample = getWaveSample(waveType, targetAngle, warpedT, smoothState.frequency);
+        const warpedSample = getWaveSample(waveType, targetAngle, warpedT, smoothState.frequency, smoothState.k, smoothState.pow);
 
         // Return cross-faded blend mix based strictly on depth controls
         return sample * (1.0 - intensity) + warpedSample * intensity;

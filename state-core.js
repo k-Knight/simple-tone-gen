@@ -2,7 +2,7 @@ window.AppStateModule = {
     create(audioInstance) {
         const state = {
             generators: [],
-            waveTypes: ['sine', 'sawtooth', 'square', 'triangle', 'sharktooth', 'scallop', 'sharkfin', 'camel', 'razorback', 'trapezoid'],
+            waveTypes: ['sine', 'sawtooth', 'square', 'triangle', 'sharktooth', 'scallop', 'sharkfin', 'camel', 'trapezoid', 'pulse'],
             masterVolume: 0.5,
             recordDuration: 2,
             isRecording: false,

@@ -28,11 +28,11 @@ window.Effect_Unison = {
 
         if (mode === 0 || mode === 1) {
             let fUpper = smoothState.frequency + fx.superDetune;
-            unisonMix += getWaveSample(waveType, 2 * Math.PI * fUpper * baseT, baseT, fUpper) * fx.superLoudness;
+            unisonMix += getWaveSample(waveType, 2 * Math.PI * fUpper * baseT, baseT, fUpper, smoothState.k, smoothState.pow) * fx.superLoudness;
         }
         if (mode === 0 || mode === 2) {
             let fLower = smoothState.frequency - fx.superDetune;
-            unisonMix += getWaveSample(waveType, 2 * Math.PI * fLower * baseT, baseT, fLower) * fx.superLoudness;
+            unisonMix += getWaveSample(waveType, 2 * Math.PI * fLower * baseT, baseT, fLower, smoothState.k, smoothState.pow) * fx.superLoudness;
         }
 
         return unisonMix / (1.0 + (mode === 0 ? 2 : 1) * fx.superLoudness);

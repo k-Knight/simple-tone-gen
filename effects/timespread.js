@@ -31,13 +31,13 @@ window.Effect_TimeSpread = {
 
         if (mode === 0) {
             let rotatedAngle = baseAngle - phaseRotationOffset;
-            subOscillationMix = getWaveSample(waveType, rotatedAngle, baseT, smoothState.frequency, "M") * fx.spreadLoudness;
+            subOscillationMix = getWaveSample(waveType, rotatedAngle, baseT, smoothState.frequency, smoothState.k, smoothState.pow) * fx.spreadLoudness;
         } else {
             let rotatedAnglePlus = baseAngle - phaseRotationOffset;
             let rotatedAngleMinus = baseAngle + phaseRotationOffset;
 
-            let v1 = getWaveSample(waveType, rotatedAnglePlus, baseT, smoothState.frequency, "L");
-            let v2 = getWaveSample(waveType, rotatedAngleMinus, baseT, smoothState.frequency, "R");
+            let v1 = getWaveSample(waveType, rotatedAnglePlus, baseT, smoothState.frequency, smoothState.k, smoothState.pow);
+            let v2 = getWaveSample(waveType, rotatedAngleMinus, baseT, smoothState.frequency, smoothState.k, smoothState.pow);
             subOscillationMix = ((v1 + v2) / 2.0) * fx.spreadLoudness;
         }
 

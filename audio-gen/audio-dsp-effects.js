@@ -1,21 +1,16 @@
 window.AudioDspEffects = {
     processMultiVoiceEffects(engineState, gen, s, activeEffects, sharedPeriod, baseT, sampleRate, getWaveSample) {
-        // 1. Generate the initial raw wave base sample
-        let currentSample = getWaveSample(gen.type, s.phaseAccumulator, baseT, s.frequency);
+        let currentSample = getWaveSample(gen.type, s.phaseAccumulator, baseT, s.frequency, s.k, s.pow);
         if (!activeEffects || activeEffects.length === 0) return currentSample;
 
-        // 2. Simply pipe the sample sequentially through every active effect
         for (let j = 0; j < activeEffects.length; j++) {
             const fx = activeEffects[j];
             const plugin = window.EffectRegistry.get(fx.type);
             if (!plugin || !plugin.process) continue;
 
-            // Initialize general tracking states if needed
             this.ensureSmoothParams(s, fx);
             const smoothFxProxy = this.generateSmoothProxy(s, fx);
 
-            // Each plugin is responsible for taking the current input sample, 
-            // modifying it (or ignoring it to return a new generated sample pattern), and returning the output.
             currentSample = plugin.process({
                 sample: currentSample,
                 baseT: baseT,

@@ -180,7 +180,7 @@ class UnifiedAudioEngine {
 
     addGenerator(id) {
         this.init();
-        this.generators.set(id, { type: 'sine', isInverted: false, frequency: 50, loudness: 0.25, pan: 0.0, timeShift: 0.0, isMuted: false, effects: [] });
+        this.generators.set(id, { type: 'sine', isInverted: false, frequency: 200, loudness: 0.25, pan: 0.0, timeShift: 0.0, k: 5.0, pow: 1.0, isMuted: false, effects: [] });
 
         if (window.AudioWorker && window.AudioWorker.resetScopeState) {
             window.AudioWorker.resetScopeState(this.generators, 48000);

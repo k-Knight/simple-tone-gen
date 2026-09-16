@@ -14,6 +14,8 @@ window.AudioDspUtils = {
                 loudness: gen.loudness,
                 pan: gen.pan,
                 timeShift: gen.timeShift,
+                k: gen.k,
+                pow: gen.pow,
                 phaseAccumulator: 0,
                 fxPhases: {}
             });
