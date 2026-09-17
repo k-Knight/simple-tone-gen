@@ -32,14 +32,50 @@ window.ComponentModule_OscillatorController = {
         if (dot) dot.setAttribute('data-active', isMuted ? 'true' : 'false');
     },
 
+    updateDynamicKnobUI(cardEl, gen, appStateInstance) {
+        const knobGrid = cardEl.querySelector('.grid');
+        if (!knobGrid) return;
+
+        const existingKnob = knobGrid.querySelector('.knob-k-target');
+        const p = appStateInstance.waveProfiles[gen.type];
+
+        if (!p || p.min === p.max) {
+            if (existingKnob) existingKnob.remove();
+            return;
+        }
+
+        const freshKnobNode = window.ComponentModule_Knob.render(
+            gen, 'k', 'Modifier', p.min, p.max, p.step, true, 'k', () => appStateInstance.sync(gen.id), 'cyan'
+        );
+        freshKnobNode.classList.add('knob-k-target');
+
+        if (existingKnob) {
+            existingKnob.replaceWith(freshKnobNode);
+        } else {
+            const powInput = knobGrid.querySelector('input[name="pow"]') || knobGrid.querySelector('input[data-prop="pow"]');
+            const powKnob = powInput ? (powInput.closest('.knob-root') || powInput.parentElement) : knobGrid.lastElementChild;
+
+            if (powKnob) {
+                knobGrid.insertBefore(freshKnobNode, powKnob);
+            } else {
+                knobGrid.appendChild(freshKnobNode);
+            }
+        }
+
+        if (window.ComponentModule_KnobController && window.ComponentModule_KnobController.bind) {
+            window.ComponentModule_KnobController.bind(freshKnobNode, gen, 'k', appStateInstance);
+        }
+    },
+
     bindInteractions(cardEl, gen, appStateInstance) {
         const waveButtons = cardEl.querySelectorAll('.wave-type-btn');
         waveButtons.forEach(btn => {
             btn.addEventListener('click', e => {
                 const wave = e.currentTarget.getAttribute('data-wave');
-                gen.type = wave;
-                appStateInstance.sync(gen.id);
+
+                appStateInstance.changeWaveType(gen.id, wave);
                 this.setWaveTypeUI(cardEl, wave);
+                this.updateDynamicKnobUI(cardEl, gen, appStateInstance);
             });
         });
 

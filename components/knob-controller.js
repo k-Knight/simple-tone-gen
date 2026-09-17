@@ -42,22 +42,22 @@ window.ComponentModule_KnobController = {
         const setupDrag = (e) => {
             if (e.button === 2) return;
 
-            // Safe cross-platform coordinate point index mapping [0]
             const touchTarget = e.touches && e.touches.length > 0 ? e.touches[0] : e;
             let startX = touchTarget.pageX;
             let startY = touchTarget.pageY;
             let startVal = targetObj[key];
 
             let startPct;
-            if (isLog && min > 0 && max > 0) {
-                const safeMin = min <= 0 ? 0.00001 : min;
-                const safeVal = startVal <= 0 ? safeMin : startVal;
-                startPct = (Math.log(safeVal) - Math.log(safeMin)) / (Math.log(max) - Math.log(safeMin));
+            const range = max - min;
+
+            if (isLog && Math.abs(range) > 0.00001) {
+                const linearPct = (startVal - min) / range;
+                const clampedLinearPct = Math.max(0, Math.min(1, linearPct));
+                startPct = Math.log(clampedLinearPct * 0.5 + 1.0) / Math.log(1.5);
             } else {
-                startPct = (startVal - min) / (max - min);
+                startPct = range !== 0 ? (startVal - min) / range : 0;
             }
 
-            // FIXED: Target the unwrapped native element to apply the pointer blocker safely on drag start
             if (resetBtn) {
                 const nativeBtn = resetBtn[0] || (resetBtn.el) || resetBtn;
                 if (nativeBtn && nativeBtn.classList) {
@@ -65,24 +65,62 @@ window.ComponentModule_KnobController = {
                 }
             }
 
+            let lastFrameX = startX;
+            let lastFrameY = startY;
+
+            let totalAccumulatedDeltaX = 0;
+            let totalAccumulatedDeltaY = 0;
+
             const move = (mev) => {
                 if (mev.cancelable) mev.preventDefault();
 
-                // Safe cross-platform coordinate mapping during movement [0]
                 const currentTouch = mev.touches && mev.touches.length > 0 ? mev.touches[0] : mev;
                 let currentX = currentTouch.pageX;
                 let currentY = currentTouch.pageY;
 
-                let deltaX = currentX - startX;
-                let deltaY = startY - currentY;
+                let continuousDeltaX = currentX - lastFrameX;
+                let continuousDeltaY = currentY - lastFrameY;
 
-                const coarseSensitivity = 300.0;
-                const fineSensitivity = 2500.0;
+                lastFrameX = currentX;
+                lastFrameY = currentY;
 
-                let pctDelta = (deltaY / coarseSensitivity) + (deltaX / fineSensitivity);
-                let nextPct = Math.max(0, Math.min(1, startPct + pctDelta));
+                totalAccumulatedDeltaX += Math.abs(continuousDeltaX);
+                totalAccumulatedDeltaY += Math.abs(continuousDeltaY);
 
-                let calculated = math.calculateValueFromPct(nextPct, min, max, isLog);
+                const microMovementThreshold = 3.0;
+                if (totalAccumulatedDeltaX < microMovementThreshold) continuousDeltaX = 0;
+                if (totalAccumulatedDeltaY < microMovementThreshold) continuousDeltaY = 0;
+
+                if (totalAccumulatedDeltaX > 0 || totalAccumulatedDeltaY > 0) {
+                    if (totalAccumulatedDeltaX * 5.0 < totalAccumulatedDeltaY) {
+                        continuousDeltaX = 0;
+                    } else if (totalAccumulatedDeltaY * 5.0 < totalAccumulatedDeltaX) {
+                        continuousDeltaY = 0; 
+                    }
+                }
+
+                let correctedDeltaY = -continuousDeltaY;
+
+                let dynamicSensitivityScale = 1.0;
+                if (isLog) {
+                    if (Math.abs(range) > 0.00001) {
+                        const currentVal = targetObj[key];
+                        const linearPct = (currentVal - min) / range;
+                        const clampedPct = Math.max(0, Math.min(1, linearPct));
+                        
+                        dynamicSensitivityScale = 0.05 + 0.95 * Math.pow(clampedPct * 2, 0.67);
+                    }
+                }
+                console.log(dynamicSensitivityScale);
+
+                const coarseSensitivity = 300.0 / dynamicSensitivityScale;
+                const fineSensitivity = 2500.0 / dynamicSensitivityScale;
+
+                let pctDelta = (correctedDeltaY / coarseSensitivity) + (continuousDeltaX / fineSensitivity);
+                
+                startPct = Math.max(0, Math.min(1, startPct + pctDelta));
+
+                let calculated = math.calculateValueFromPct(startPct, min, max, isLog);
 
                 if (step && step > 0) {
                     const stepsCount = Math.round((calculated - min) / step);
@@ -103,7 +141,6 @@ window.ComponentModule_KnobController = {
                 const hasValueSubstantiallyChanged = Math.abs(nextFinalValue - previousValue) > 0.0001;
 
                 if (forcesSimulationReset && hasValueSubstantiallyChanged && window.audio && typeof window.audio.restartSimulation === 'function') {
-                    console.log("DISCRETE VALUE CHANGED. RESTARTING SIMULATION...");
                     window.audio.restartSimulation();
                 }
 
@@ -133,14 +170,23 @@ window.ComponentModule_KnobController = {
         const handleReset = (e) => {
             if (e) e.preventDefault();
             const previousValue = targetObj[key];
-            const nextFinalValue = targetObj._defaults && targetObj._defaults[key] !== undefined
-                ? targetObj._defaults[key]
-                : (min < 0 && max > 0 ? 0 : min);
+            let nextFinalValue;
+            
+            if (key === 'k' && window.AppState && window.AppState.waveProfiles && window.AppState.waveProfiles[targetObj.type]) {
+                nextFinalValue = window.AppState.waveProfiles[targetObj.type].default;
+            } else {
+                nextFinalValue = targetObj._defaults && targetObj._defaults[key] !== undefined
+                    ? targetObj._defaults[key]
+                    : (min < 0 && max > 0 ? 0 : min);
+            }
 
             targetObj[key] = nextFinalValue;
 
             if (typeof syncCallback === 'function') {
                 syncCallback();
+                if (window.AppState && typeof window.AppState.sync === 'function') {
+                    window.AppState.sync(targetObj.id);
+                }
             }
 
             const hasValueSubstantiallyChanged = Math.abs(nextFinalValue - previousValue) > 0.0001;

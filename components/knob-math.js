@@ -15,21 +15,24 @@ window.ComponentModule_KnobMath = {
     getDisplayPrecision(value, stepDecimals, isLog) {
         if (isLog && value > 0) {
             const absCalc = Math.abs(value);
-            if (absCalc >= 1000) return 0;
-            if (absCalc > 100) return 1;
-            if (absCalc > 10) return 2;
-            if (absCalc > 1) return 3;
-            if (absCalc > 0.1) return 5;
-            return 5;
+            if (absCalc >= 100) return 0;
+            if (absCalc > 10) return 1;
+            if (absCalc > 1) return 2;
+            if (absCalc > 0.1) return 3;
+            return 4;
         }
         return stepDecimals;
     },
 
     calculateValueFromPct(pct, min, max, isLog) {
-        if (isLog && min > 0 && max > 0) {
-            const safeMin = min <= 0 ? 0.001 : min;
-            return Math.exp(Math.log(safeMin) + pct * (Math.log(max) - Math.log(safeMin)));
+        if (isLog) {
+            const range = max - min;
+            if (Math.abs(range) < 0.00001) return min;
+
+            const logCurvePct = (Math.pow(1.5, pct) - 1.0) / 0.5;
+            return min + (logCurvePct * range);
         }
+
         return min + (pct * (max - min));
     }
 };

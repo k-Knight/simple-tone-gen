@@ -18,13 +18,14 @@
         if (type === 'sine') {
             val = Math.sin(angle);
         } else if (type === 'square') {
-            val = x < (k / 10 + 0.45) % 1 ? 1.0 : -1.0;
+            val = x < k % 1 ? 1.0 : -1.0;
         } else if (type === 'sawtooth') {
             const tri = ((angle % (2 * Math.PI)) / Math.PI - 1) * 2;
-            const slopeFactor = Math.max(k * 1.0, 0.5);
-            val = Math.max(-1, Math.min(1, tri * slopeFactor));
+            val = Math.max(-1, Math.min(1, tri * k));
         } else if (type === 'triangle') {
-            val = 1.0 - 4.0 * Math.abs(Math.round(x) - x);
+            const tri = 1.0 - 4.0 * Math.abs(Math.round(x) - x);
+            const steepness = 1.0 + (k * 2.0);
+            val = Math.max(-1, Math.min(1, tri * steepness));
         } else if (type === 'sharktooth') {
             const x = angle / (2 * Math.PI);
 
@@ -45,10 +46,6 @@
             val = Math.pow(x, k) * 2.0 - 1.0;
         } else if (type === 'camel') {
             val = 2.0 * (Math.sin(angle) * Math.abs(Math.cos(angle)));
-        } else if (type === 'trapezoid') {
-            const tri = 1.0 - 4.0 * Math.abs(Math.round(x) - x);
-            const steepness = 1.0 + (k * 2.0);
-            val = Math.max(-1, Math.min(1, tri * steepness));
         } else if (type === 'pulse') {
             let currentScale = scaleCache.get(k);
             if (currentScale === undefined) {

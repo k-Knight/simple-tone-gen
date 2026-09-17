@@ -7,7 +7,7 @@ window.AudioDspModule = {
         if (!engineState.visualBuffer) {
             engineState.visualBuffer = new Float32Array(800);
         }
-        
+
         if (!engineState.scopeRingBuffer) {
             engineState.scopeRingBuffer = new Float32Array(16384);
             engineState.scopeRingWritePtr = 0;
@@ -23,7 +23,7 @@ window.AudioDspModule = {
 
         const scaleStartHz = 500;
         const scaleEndHz = 20000;
-        
+
         if (lowestFreq > scaleStartHz) {
             const logRatio = Math.log(lowestFreq / scaleStartHz) / Math.log(scaleEndHz / scaleStartHz);
             const t = Math.max(0, Math.min(1.0, logRatio));
@@ -47,12 +47,17 @@ window.AudioDspModule = {
 
                 utils.initGeneratorSmoothingState(engineState, genId, gen);
                 const s = engineState.smoothState.get(genId);
-                
+
                 s.frequency += (gen.frequency - s.frequency) * 0.002;
                 s.loudness += (gen.loudness - s.loudness) * 0.002;
                 s.pan += (gen.pan - s.pan) * 0.002;
                 s.timeShift += (gen.timeShift - s.timeShift) * 0.002;
-                s.k += (gen.k - s.k) * 0.002;
+                if (gen.mustSnapK) {
+                    s.k = gen.k;
+                    gen.mustSnapK = false;
+                } else {
+                    s.k += (gen.k - s.k) * 0.002;
+                }
                 s.pow += (gen.pow - s.pow) * 0.002;
 
                 if (s.loudness <= 0.0001) continue;
@@ -63,13 +68,13 @@ window.AudioDspModule = {
                 const baseT = (engineState.phaseTimeline / sampleRate) - s.timeShift;
 
                 let voiceSampleLeft = effects.processMultiVoiceEffects(
-                    engineState, 
-                    gen, 
-                    s, 
-                    gen.effects, 
-                    sharedPeriod, 
-                    baseT, 
-                    sampleRate, 
+                    engineState,
+                    gen,
+                    s,
+                    gen.effects,
+                    sharedPeriod,
+                    baseT,
+                    sampleRate,
                     getWaveSample
                 );
 
@@ -98,12 +103,12 @@ window.AudioDspModule = {
             engineState.phaseTimeline++;
         }
 
-        const periodsInVisBuffer = 2.0; 
+        const periodsInVisBuffer = 2.0;
         const totalDisplaySamples = periodsInVisBuffer * samplesPerPeriod;
 
         const periodsToJumpBack = Math.ceil(periodsInVisBuffer);
         let startIdx = engineState.lastPeriodIndex - Math.floor(periodsToJumpBack * samplesPerPeriod);
-        
+
         if (startIdx < 0) {
             startIdx = 16384 + (startIdx % 16384);
         }
@@ -111,7 +116,7 @@ window.AudioDspModule = {
         for (let v = 0; v < 800; v++) {
             const fraction = v / 799;
             const targetSampleOffset = fraction * totalDisplaySamples;
-            
+
             const offset1 = Math.floor(targetSampleOffset);
             const offset2 = offset1 + 1;
             const interpFactor = targetSampleOffset - offset1;

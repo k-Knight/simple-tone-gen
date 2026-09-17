@@ -55,7 +55,16 @@ window.ComponentModule_Oscillator = {
                         ${knob(gen, 'loudness', 'Loudness', 0, 1, 0.01, false, '%', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'pan', 'Balance', -1, 1, 0.01, false, 'Bal', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'timeShift', 'Time Shift', 0, 0.05, 0.0001, false, 'Sec', () => appStateInstance.sync(gen.id), 'cyan')}
-                        ${knob(gen, 'k', 'Modifier', 0, 100, 0.01, true, 'k', () => appStateInstance.sync(gen.id), 'cyan')}
+
+                        ${(() => {
+                            const p = appStateInstance.waveProfiles[gen.type];
+                            if (!p || p.min === p.max) return null;
+
+                            const el = knob(gen, 'k', 'Modifier', p.min, p.max, p.step, true, 'k', () => appStateInstance.sync(gen.id), 'cyan');
+                            el.classList.add('knob-k-target');
+                            return el;
+                        })()}
+
                         ${knob(gen, 'pow', 'Exponent', 0, 10, 0.01, true, 'pow', () => appStateInstance.sync(gen.id), 'cyan')}
                     </div>
 
