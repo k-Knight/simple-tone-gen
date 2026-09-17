@@ -49,7 +49,7 @@ window.AppStateModule = {
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                                 <div class="md:col-span-5">
                                     <h1 class="text-2xl font-bold bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent select-none">Simple Tone Generator</h1>
-                                    <p class="text-sm text-zinc-400 mt-1 select-none">High performance phase-accurate multi-oscillator workspace.</p>
+                                    <p class="text-sm text-zinc-400 mt-1 select-none">Bad performance phase-accurate multi-oscillator workspace.</p>
                                 </div>
                                 <div class="md:col-span-7 flex items-center gap-4 bg-zinc-950/40 p-4 border border-zinc-800/60 rounded-xl">
                                     <div class="flex-1 space-y-3">
