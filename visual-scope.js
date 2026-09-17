@@ -17,27 +17,21 @@ window.VisualScopeModule = {
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Center horizontal guide line
             ctx.strokeStyle = '#1e1e24'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
 
-            // Check if our pre-calculated engine array is ready
             if (audioInstance.visualBuffer) {
                 const buffer = audioInstance.visualBuffer;
 
-                // --- AUTOMATIC VOLTAGE INDEPENDENT NORMALIZATION ---
-                // Scan the pre-calculated points to find the absolute maximum peak height
                 let maxVal = 0;
                 for (let i = 0; i < VISUAL_POINTS; i++) {
                     const absVal = Math.abs(buffer[i]);
                     if (absVal > maxVal) maxVal = absVal;
                 }
 
-                // Auto-zoom scaling multiplier
                 let visualGain = maxVal > 0.001 ? (0.75 / maxVal) : 1.0;
-                if (visualGain > 15.0) visualGain = 15.0; // Prevent noise lines from blowing up when muted
+                if (visualGain > 15.0) visualGain = 15.0;
 
-                // --- DRAW PURE ARRAY POINTS ---
                 ctx.strokeStyle = '#38f8e2'; ctx.lineWidth = 2.5;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -47,10 +41,8 @@ window.VisualScopeModule = {
                 let x = 0;
 
                 for (let i = 0; i < VISUAL_POINTS; i++) {
-                    // Extract pre-computed sample heights and apply our gain multiplier
                     const scaledSample = buffer[i] * visualGain;
                     
-                    // Invert height so positive amplitudes rise cleanly upwards
                     let y = (canvas.height / 2) - (scaledSample * (canvas.height / 2));
 
                     if (isNaN(y)) y = canvas.height / 2;
@@ -60,7 +52,6 @@ window.VisualScopeModule = {
                 }
                 ctx.stroke();
             } else {
-                // Flatline fallback until the engine starts
                 ctx.strokeStyle = '#38f8e2'; ctx.lineWidth = 2.5;
                 ctx.beginPath(); ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
             }

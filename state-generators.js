@@ -42,6 +42,77 @@ window.StateGeneratorsModule = {
                     container.appendChild(node);
                 }
                 any('#emptyStatePlaceholder').classAdd('hidden');
+
+                window.audio.restartSimulation();
+            },
+
+            moveEffectUp(oscId, fxId) {
+                const g = state.generators.find(x => x.id === oscId);
+                if (!g) return;
+                const idx = g.effects.findIndex(f => f.id === fxId);
+                if (idx <= 0) return;
+
+                const item = g.effects[idx];
+                g.effects[idx] = g.effects[idx - 1];
+                g.effects[idx - 1] = item;
+
+                this._rebuildEffectsUI(g);
+                state.sync(g.id);
+            },
+
+            moveEffectDown(oscId, fxId) {
+                const g = state.generators.find(x => x.id === oscId);
+                if (!g) return;
+                const idx = g.effects.findIndex(f => f.id === fxId);
+                if (idx < 0 || idx >= g.effects.length - 1) return;
+
+                const item = g.effects[idx];
+                g.effects[idx] = g.effects[idx + 1];
+                g.effects[idx + 1] = item;
+
+                this._rebuildEffectsUI(g);
+                state.sync(g.id);
+            },
+
+            moveEffectTop(oscId, fxId) {
+                const g = state.generators.find(x => x.id === oscId);
+                if (!g) return;
+                const idx = g.effects.findIndex(f => f.id === fxId);
+                if (idx <= 0) return;
+
+                const [item] = g.effects.splice(idx, 1);
+                g.effects.unshift(item);
+
+                this._rebuildEffectsUI(g);
+                state.sync(g.id);
+            },
+
+            moveEffectBottom(oscId, fxId) {
+                const g = state.generators.find(x => x.id === oscId);
+                if (!g) return;
+                const idx = g.effects.findIndex(f => f.id === fxId);
+                if (idx < 0 || idx === g.effects.length - 1) return;
+
+                const [item] = g.effects.splice(idx, 1);
+                g.effects.push(item);
+
+                this._rebuildEffectsUI(g);
+                state.sync(g.id);
+            },
+
+            _rebuildEffectsUI(g) {
+                const cardEl = document.querySelector(`[data-osc-id="${g.id}"]`);
+                if (!cardEl) return;
+                const mount = cardEl.querySelector('.effects-display-mount-point');
+                if (!mount) return;
+
+                mount.innerHTML = '';
+                g.effects.forEach(fx => {
+                    const freshPanel = window.ComponentModule_EffectPanels.render(g, fx, state);
+                    if (freshPanel) mount.appendChild(freshPanel);
+                });
+
+                window.audio.restartSimulation();
             },
 
             removeGenerator(id) {
@@ -52,6 +123,8 @@ window.StateGeneratorsModule = {
                 if (state.generators.length === 0) {
                     any('#emptyStatePlaceholder').classRemove('hidden');
                 }
+
+                window.audio.restartSimulation();
             },
 
             changeWaveType(id, newType) {
@@ -64,6 +137,8 @@ window.StateGeneratorsModule = {
                 g.mustSnapK = true;
 
                 this.validateAndSync(g);
+
+                window.audio.restartSimulation();
             },
 
             validateAndSync(g) {

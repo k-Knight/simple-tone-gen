@@ -31,6 +31,3 @@ window.Effect_Distortion = {
         return sample * (1.0 - mix) + wetSample * mix;
     }
 };
-
-window.EffectRegistry = window.EffectRegistry || {};
-window.EffectRegistry.distortion = window.Effect_Distortion;

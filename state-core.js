@@ -45,7 +45,7 @@ window.AppStateModule = {
 
                 root.appendChild(html`
                     <div class="space-y-4">
-                        <header class="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-xl space-y-4">
+                        <header class="sticky top-0 z-50 p-6 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-[0_10px_0_0_var(--color-zinc-950,rgb(9_9_11)),0_25px_30px_-5px_rgba(0,0,0,0.5)] space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                                 <div class="md:col-span-5">
                                     <h1 class="text-2xl font-bold bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent select-none">Simple Tone Generator</h1>
@@ -70,7 +70,6 @@ window.AppStateModule = {
                                         </div>
                                     </div>
 
-                                    <!-- FIXED: Swapped out sky colors for dark background variables, and added self-stretch for full vertical height -->
                                     <button id="addOscillatorButton" class="px-4 py-2 bg-zinc-900 border border-sky-800 text-sky-400 hover:bg-zinc-800 hover:border-sky-700 font-bold text-xs rounded-xl uppercase tracking-wide flex items-center gap-1.5 self-stretch transition-colors cursor-pointer">
                                         <div class="flex items-center justify-center">${icons.add}</div> Add Oscillator
                                     </button>
@@ -80,6 +79,7 @@ window.AppStateModule = {
                                 <canvas id="scopeCanvas" class="w-full h-full block"></canvas>
                             </div>
                         </header>
+
                         <main id="oscillatorListContainer" class="space-y-4">
                             <div id="emptyStatePlaceholder" class="text-center py-12 border border-dashed border-zinc-800 rounded-xl text-zinc-500 text-xs select-none">No active oscillators. Click "Add Oscillator" to start synthesis.</div>
                         </main>

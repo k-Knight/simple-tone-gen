@@ -35,6 +35,3 @@ window.Effect_Fuzz = {
         return sample * (1.0 - blend) + finalFuzz * blend;
     }
 };
-
-window.EffectRegistry = window.EffectRegistry || {};
-window.EffectRegistry.fuzz = window.Effect_Fuzz;

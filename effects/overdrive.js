@@ -42,6 +42,3 @@ window.Effect_Overdrive = {
         return sample * (1.0 - mix) + wetSample * mix;
     }
 };
-
-window.EffectRegistry = window.EffectRegistry || {};
-window.EffectRegistry.overdrive = window.Effect_Overdrive;
