@@ -1,22 +1,69 @@
 (function () {
-    function getOriginalMax(damping) {
+    function getPulseYMax(damping) {
         const sqrtK2Plus1 = Math.sqrt(damping * damping + 1);
         const coeff = Math.sqrt(2 * (sqrtK2Plus1 - 1)) / damping;
         const exponent = -(damping + 1 - sqrtK2Plus1) / 2;
         return coeff * Math.exp(exponent);
     }
 
+    function getCamelYMax(b) {
+        let ymax = 0;
+
+        const steps = 120;
+        let bestIdx = 0;
+        for (let i = 0; i <= steps; i++) {
+            const a = (i / steps) * 6.283185307179586;
+            const y = Math.abs(Math.sin(a)) * Math.abs(Math.cos(b * a));
+            if (y > ymax) {
+                ymax = y;
+                bestIdx = i;
+            }
+        }
+
+        let low = Math.max(0, ((bestIdx - 1) / steps) * 6.283185307179586);
+        let high = Math.min(6.283185307179586, ((bestIdx + 1) / steps) * 6.283185307179586);
+
+        for (let iter = 0; iter < 40; iter++) {
+            const mid = (low + high) * 0.5;
+            const cosBA = Math.cos(b * mid);
+
+            const slope = (Math.sin(mid) >= 0 ? 1 : -1) * (cosBA >= 0 ? 1 : -1) *
+                (Math.cos(mid) * cosBA - b * Math.sin(mid) * Math.sin(b * mid));
+
+            if (slope > 0) low = mid;
+            else high = mid;
+        }
+
+        const finalA = (low + high) * 0.5;
+        return Math.abs(Math.sin(finalA)) * Math.abs(Math.cos(b * finalA));
+    }
+
     const scope = typeof window !== 'undefined' ? window : self;
     scope.AudioWorker = scope.AudioWorker || {};
 
-    const scaleCache = new Map();
+    const pulseScaleCache = new Map();
+    const camelScaleCache = new Map();
 
     scope.AudioWorker.getWaveSample = function (type, angle, t, frequency, k, pow) {
         const x = ((angle / (2 * Math.PI)) % 1 + 1) % 1;
         let val = 0;
 
         if (type === 'sine') {
-            val = Math.sin(angle);
+            const sinPart = Math.sin(angle);
+
+            if (Math.abs(k) < 0.0001) {
+                val = sinPart;
+            } else {
+                const cosPart = Math.cos(angle);
+                const absT = Math.abs(k);
+                const t1 = Math.asin(absT) / absT;
+
+                const numerator = k * sinPart;
+                const denominator = 1.0 - (k * cosPart);
+                const rawWarped = Math.atan2(numerator, denominator);
+
+                val = (1.0 / (k * t1)) * rawWarped;
+            }
         } else if (type === 'square') {
             val = x < k % 1 ? 1.0 : -1.0;
         } else if (type === 'sawtooth') {
@@ -45,13 +92,20 @@
         } else if (type === 'sharkfin') {
             val = Math.pow(x, k) * 2.0 - 1.0;
         } else if (type === 'camel') {
-            val = 2.0 * (Math.sin(angle) * Math.abs(Math.cos(angle)));
-        } else if (type === 'pulse') {
-            let currentScale = scaleCache.get(k);
+            let currentScale = camelScaleCache.get(k);
             if (currentScale === undefined) {
-                const originalMaxK = getOriginalMax(k);
-                currentScale = originalMaxK > 0 ? (1.0 / originalMaxK) : 1.0;
-                scaleCache.set(k, currentScale);
+                const yMax = getCamelYMax(k);
+                currentScale = yMax > 0 ? (1.0 / yMax) : 1.0;
+                camelScaleCache.set(k, currentScale);
+            }
+
+            val = currentScale * (Math.sin(angle) * Math.abs(Math.cos(angle * k)));
+        } else if (type === 'pulse') {
+            let currentScale = pulseScaleCache.get(k);
+            if (currentScale === undefined) {
+                const yMax = getPulseYMax(k);
+                currentScale = yMax > 0 ? (1.0 / yMax) : 1.0;
+                pulseScaleCache.set(k, currentScale);
             }
 
             const sinPiX = Math.sin(angle * 0.5);

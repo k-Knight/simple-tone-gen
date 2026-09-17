@@ -111,7 +111,6 @@ window.ComponentModule_KnobController = {
                         dynamicSensitivityScale = 0.05 + 0.95 * Math.pow(clampedPct * 2, 0.67);
                     }
                 }
-                console.log(dynamicSensitivityScale);
 
                 const coarseSensitivity = 300.0 / dynamicSensitivityScale;
                 const fineSensitivity = 2500.0 / dynamicSensitivityScale;
