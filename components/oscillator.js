@@ -69,7 +69,7 @@ window.ComponentModule_Oscillator = {
                     </div>
 
                     <div class="mt-4 pt-4 border-t border-zinc-800/50 space-y-3">
-                       <div class="flex items-center gap-3">
+                        <div class="flex flex-wrap items-center gap-2 w-full">
                             ${Object.keys(window.EffectRegistry).map(key => {
                                 if (typeof window.EffectRegistry[key] === 'function') return null;
 

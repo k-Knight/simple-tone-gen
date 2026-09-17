@@ -19,26 +19,20 @@ window.Effect_Hyperbolic = {
     },
 
     process(ctx) {
-        // Extract everything cleanly from the unified lifecycle context parameter object
         const { sample, baseT, engineState, smoothState, fx, sharedPeriod, getWaveSample, waveType } = ctx;
 
         const period = fx.warpPeriod;
         const cutoff = fx.zeroCutoff;
         const intensity = fx.warpIntensity;
 
-        // Perform internal localized global phase timeline mutations
         let localT = engineState.globalWarpPhase ?? 0;
         if (localT < cutoff) localT = cutoff;
 
-        // Calculate hyperbolic target times
         let rawWarpedT = (sharedPeriod * cutoff) / localT;
         let warpedT = rawWarpedT * intensity + baseT * (1.0 - intensity);
         let targetAngle = 2 * Math.PI * smoothState.frequency * warpedT;
 
-        // Generate the replacement warped asset sample point directly here
         const warpedSample = getWaveSample(waveType, targetAngle, warpedT, smoothState.frequency, smoothState.k, smoothState.pow);
-
-        // Return cross-faded blend mix based strictly on depth controls
         return sample * (1.0 - intensity) + warpedSample * intensity;
     }
 };

@@ -11,7 +11,7 @@ window.AppStateModule = {
                 scallop:    { min: 0,    max: 100,  step: 0.001, default: 0.5 },
                 sharkfin:   { min: 0,    max: 10,  step: 0.001, default: 0.3 },
                 camel:      { min: -3,    max: 3,  step: 0.001, default: 1 },
-                pulse:      { min: 0,    max: 100, step: 0.001, default: 3.0 }
+                pulse:      { min: 0,    max: 100, step: 0.001, default: 5.0 }
             },
             get waveTypes() { return Object.keys(this.waveProfiles); },
             masterVolume: 0.5,
