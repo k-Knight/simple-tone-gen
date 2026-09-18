@@ -17,9 +17,6 @@ window.AudioDspModule = {
             engineState.phaseTracker = 0;
         }
 
-        utils.initGlobalWarpTimeline(engineState);
-        const targetPeriod = utils.getHyperbolicMasterPeriod(engineState.generators);
-
         const lowestFreq = utils.getLowestActiveFrequency(engineState) || 200;
         let samplesPerPeriod = sampleRate / lowestFreq;
 
@@ -30,7 +27,7 @@ window.AudioDspModule = {
             const logRatio = Math.log(lowestFreq / scaleStartHz) / Math.log(scaleEndHz / scaleStartHz);
             const t = Math.max(0, Math.min(1.0, logRatio));
 
-            const reductionFactor = 1.0 / Math.pow(0.125, t);
+            const reductionFactor = Math.pow(0.125, t);
 
             samplesPerPeriod = samplesPerPeriod * reductionFactor;
         }
@@ -38,11 +35,6 @@ window.AudioDspModule = {
         for (let i = 0; i < bufferLength; i++) {
             let masterLeftSample = 0;
             let masterRightSample = 0;
-
-            engineState.smoothWarpPeriod += (targetPeriod - engineState.smoothWarpPeriod) * 0.004;
-            const sharedPeriod = engineState.smoothWarpPeriod;
-
-            utils.advanceGlobalWarpPhase(engineState, sharedPeriod, sampleRate);
 
             for (let [genId, gen] of engineState.generators) {
                 if (gen.isMuted) continue;
@@ -54,6 +46,7 @@ window.AudioDspModule = {
                 s.loudness += (gen.loudness - s.loudness) * adjustmentRate;
                 s.pan += (gen.pan - s.pan) * adjustmentRate;
                 s.timeShift += (gen.timeShift - s.timeShift) * adjustmentRate;
+
                 if (gen.mustSnapK) {
                     s.k = gen.k;
                     gen.mustSnapK = false;
@@ -74,7 +67,7 @@ window.AudioDspModule = {
                     gen,
                     s,
                     gen.effects,
-                    sharedPeriod,
+                    sampleRate,
                     baseT,
                     sampleRate,
                     getWaveSample

@@ -21,7 +21,8 @@ class UnifiedAudioEngine {
         this.schedulerTimer = null;
         this.activeSourcesPool = new Set();
 
-        this.pendingUpdates = new Map()
+        this.pendingUpdates = new Map();
+        this.fxState = {};
     }
 
     setMasterVolume(val) {
@@ -117,11 +118,15 @@ class UnifiedAudioEngine {
         this.analyser = null;
 
         this.phaseTimeline = 0;
-        this.globalWarpPhase = 0;
-        this.globalWarpDirection = 1;
         this.smoothWarpPeriod = 0.15;
         this.smoothState.clear();
         this.visualBuffer = new Float32Array(800);
+
+        for (let fxId in this.fxState) {
+            if (this.fxState.hasOwnProperty(fxId)) {
+                this.fxState[fxId] = {};
+            }
+        }
 
         this.savedMasterVolume = this.masterVolumeLevel;
         this.init();

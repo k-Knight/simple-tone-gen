@@ -8,6 +8,9 @@ window.StateEffectsModule = {
                 if (!target || !plugin || target.effects.some(fx => fx.type === effectType)) return;
 
                 const fxId = crypto.randomUUID();
+
+                window.audio.fxState[fxId] = {};
+
                 const fxConfig = plugin.getDefaults(fxId);
                 fxConfig._defaults = Object.assign({}, fxConfig);
 
@@ -28,6 +31,7 @@ window.StateEffectsModule = {
                     any(`[data-osc-id="${genId}"]`).run(el => el.dispatchEvent(new CustomEvent('effect-removed', { detail: { fxId } })));
                 }
 
+                delete window.audio.fxState[fxId];
                 window.audio.restartSimulation();
             },
 
