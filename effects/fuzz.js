@@ -1,7 +1,7 @@
 window.Effect_Fuzz = {
     type: 'fuzz',
     label: 'Transistor Starvation Fuzz',
-    theme: 'rose',
+    theme: 'pink',
     knobs: [
         { key: 'fuzzIntensity', label: 'Sustain / Drive', min: 1.0, max: 20.0, step: 0.1,  isLog: false, unit: 'Sust' },
         { key: 'bias',          label: 'Asymmetry',       min: -0.5, max: 0.5,  step: 0.01, isLog: false, unit: 'Bias' },
