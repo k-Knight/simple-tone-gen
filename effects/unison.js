@@ -19,20 +19,24 @@ window.Effect_Unison = {
         fx.superMode = Math.max(0, Math.min(2, Math.round(parseFloat(fx.superMode)) || 0));
     },
 
-    // Refactored to read from the unified context payload
     process(ctx) {
         const { sample, baseT, smoothState, fx, getWaveSample, waveType } = ctx;
         
         const mode = Math.round(fx.superMode);
         let unisonMix = sample;
 
+        const masterPhase = smoothState.phaseAccumulator;
+        const detuneAngleOffset = 2 * Math.PI * fx.superDetune * baseT;
+
         if (mode === 0 || mode === 1) {
             let fUpper = smoothState.frequency + fx.superDetune;
-            unisonMix += getWaveSample(waveType, 2 * Math.PI * fUpper * baseT, baseT, fUpper, smoothState.k, smoothState.pow) * fx.superLoudness;
+            let targetAngleUpper = masterPhase + detuneAngleOffset;
+            unisonMix += getWaveSample(waveType, targetAngleUpper, baseT, fUpper, smoothState.k, smoothState.pow) * fx.superLoudness;
         }
         if (mode === 0 || mode === 2) {
             let fLower = smoothState.frequency - fx.superDetune;
-            unisonMix += getWaveSample(waveType, 2 * Math.PI * fLower * baseT, baseT, fLower, smoothState.k, smoothState.pow) * fx.superLoudness;
+            let targetAngleLower = masterPhase - detuneAngleOffset;
+            unisonMix += getWaveSample(waveType, targetAngleLower, baseT, fLower, smoothState.k, smoothState.pow) * fx.superLoudness;
         }
 
         return unisonMix / (1.0 + (mode === 0 ? 2 : 1) * fx.superLoudness);

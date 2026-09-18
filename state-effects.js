@@ -15,6 +15,8 @@ window.StateEffectsModule = {
                 state.sync(genId);
 
                 any(`[data-osc-id="${genId}"]`).run(el => el.dispatchEvent(new CustomEvent('effect-added', { detail: fxConfig })));
+
+                window.audio.restartSimulation();
             },
 
             removeEffect(genId, fxId) {
@@ -25,6 +27,8 @@ window.StateEffectsModule = {
                     any(`[data-fx-id="${fxId}"]`).remove();
                     any(`[data-osc-id="${genId}"]`).run(el => el.dispatchEvent(new CustomEvent('effect-removed', { detail: { fxId } })));
                 }
+
+                window.audio.restartSimulation();
             },
 
             validateFxAndSync(g, fx) {

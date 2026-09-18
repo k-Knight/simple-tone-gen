@@ -1,3 +1,5 @@
+const adjustmentRate = 0.01;
+
 window.AudioDspModule = {
     calculateBlock(engineState, bufferLength, leftChannel, rightChannel, sampleRate) {
         const getWaveSample = window.AudioWorker.getWaveSample;
@@ -48,17 +50,17 @@ window.AudioDspModule = {
                 utils.initGeneratorSmoothingState(engineState, genId, gen);
                 const s = engineState.smoothState.get(genId);
 
-                s.frequency += (gen.frequency - s.frequency) * 0.002;
-                s.loudness += (gen.loudness - s.loudness) * 0.002;
-                s.pan += (gen.pan - s.pan) * 0.002;
-                s.timeShift += (gen.timeShift - s.timeShift) * 0.002;
+                s.frequency += (gen.frequency - s.frequency) * adjustmentRate;
+                s.loudness += (gen.loudness - s.loudness) * adjustmentRate;
+                s.pan += (gen.pan - s.pan) * adjustmentRate;
+                s.timeShift += (gen.timeShift - s.timeShift) * adjustmentRate;
                 if (gen.mustSnapK) {
                     s.k = gen.k;
                     gen.mustSnapK = false;
                 } else {
-                    s.k += (gen.k - s.k) * 0.002;
+                    s.k += (gen.k - s.k) * adjustmentRate;
                 }
-                s.pow += (gen.pow - s.pow) * 0.002;
+                s.pow += (gen.pow - s.pow) * adjustmentRate;
 
                 if (s.loudness <= 0.0001) continue;
 

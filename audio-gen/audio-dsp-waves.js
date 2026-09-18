@@ -43,9 +43,13 @@
 
     const pulseScaleCache = new Map();
     const camelScaleCache = new Map();
+    const TWO_PI = 6.283185307179586;
 
     scope.AudioWorker.getWaveSample = function (type, angle, t, frequency, k, pow) {
-        const x = ((angle / (2 * Math.PI)) % 1 + 1) % 1;
+        angle = angle % TWO_PI;
+        angle = (angle + TWO_PI) % TWO_PI;
+        const x = angle / TWO_PI;
+
         let val = 0;
 
         if (type === 'sine') {
