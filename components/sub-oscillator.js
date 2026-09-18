@@ -19,7 +19,6 @@ window.ComponentModule_SubOscillator = {
 
         const subEl = html`
             <div data-sub-id="${sub.id}" class="sub-oscillator-row p-4 bg-zinc-950/60 border border-zinc-800/40 rounded-2xl space-y-3 mt-3 relative group">
-                
                 <div class="flex items-center justify-between gap-4 border-b border-zinc-800/40 pb-2">
                     <div class="flex items-center gap-3">
                         <span class="text-[10px] font-mono px-2 py-0.5 bg-zinc-900 border border-zinc-700 rounded text-zinc-400">SUB #${subIndex + 1}</span>
@@ -32,8 +31,7 @@ window.ComponentModule_SubOscillator = {
                             <span>Invert</span>
                         </label>
 
-                        <button class="sub-mute-toggle-btn px-2 py-0.5 text-[11px] border border-zinc-700/40 rounded-md uppercase tracking-wider font-bold transition-all flex items-center gap-1 cursor-pointer bg-zinc-950/40 text-zinc-500 data-[active=${isMutedStr}]:bg-rose-950/80 data-[active=${isMutedStr}]:text-rose-400 data-[active=${isMutedStr}]:border-rose-800/60"
-                                data-active="${isMutedStr}">
+                        <button class="sub-mute-toggle-btn px-2 py-0.5 text-[11px] border border-zinc-700/40 rounded-md uppercase tracking-wider font-bold transition-all flex items-center gap-1 cursor-pointer bg-zinc-950/40 text-zinc-500 data-[active=${isMutedStr}]:bg-rose-950/80 data-[active=${isMutedStr}]:text-rose-400 data-[active=${isMutedStr}]:border-rose-800/60" data-active="${isMutedStr}">
                             <div class="sub-mute-dot w-1.5 h-1.5 rounded-full bg-zinc-700 transition-all data-[active=${isMutedStr}]:bg-rose-400 data-[active=${isMutedStr}]:animate-pulse"></div>
                             <span>Mute</span>
                         </button>
@@ -48,9 +46,7 @@ window.ComponentModule_SubOscillator = {
                     ${appStateInstance.waveTypes.map(w => {
                         const isWaveActiveStr = sub.type === w ? "true" : "false";
                         return html`
-                            <button data-wave="${w}"
-                                    data-active="${isWaveActiveStr}"
-                                    class="sub-wave-btn flex-grow text-center px-1.5 py-0.5 rounded-lg border border-transparent capitalize text-zinc-400 transition-all cursor-pointer data-[active=true]:bg-zinc-800 data-[active=true]:text-cyan-400 data-[active=true]:border-zinc-700">
+                            <button data-wave="({w}" data-active="){isWaveActiveStr}" class="sub-wave-btn flex-grow text-center px-1.5 py-0.5 rounded-lg border border-transparent capitalize text-zinc-400 transition-all cursor-pointer data-[active=true]:bg-zinc-800 data-[active=true]:text-cyan-400 data-[active=true]:border-zinc-700">
                                 ${w}
                             </button>
                         `;
@@ -61,7 +57,7 @@ window.ComponentModule_SubOscillator = {
                     ${knob(sub, 'multiplier', 'Multiplier', 0.1, 16.0, 0.01, false, 'x', () => appStateInstance.sync(gen.id), 'cyan')}
                     ${knob(sub, 'loudness', 'Loudness', 0, 1, 0.01, false, '%', () => appStateInstance.sync(gen.id), 'cyan')}
                     ${knob(sub, 'pan', 'Balance', -1, 1, 0.01, false, 'Bal', () => appStateInstance.sync(gen.id), 'cyan')}
-                    ${knob(sub, 'timeShift', 'Time Shift', 0, 0.05, 0.0001, false, 'Sec', () => appStateInstance.sync(gen.id), 'cyan')}
+                    ${knob(sub, 'timeShift', 'Phase Offset', -2, 2, 0.001, false, 'T', () => appStateInstance.sync(gen.id), 'cyan')}
                     ${(() => {
                         const p = appStateInstance.waveProfiles[sub.type];
                         if (!p || p.min === p.max) return null;
@@ -76,13 +72,10 @@ window.ComponentModule_SubOscillator = {
             btn.addEventListener('click', e => {
                 const selectedWave = e.currentTarget.getAttribute('data-wave');
                 sub.type = selectedWave;
-                
                 const profile = appStateInstance.waveProfiles[selectedWave];
                 sub.k = profile ? profile.default : 0;
-                
                 appStateInstance.sync(gen.id);
                 window.audio.restartSimulation();
-
                 const freshRow = this.render(gen, sub, subIndex, appStateInstance);
                 subEl.replaceWith(freshRow);
             });
@@ -92,7 +85,6 @@ window.ComponentModule_SubOscillator = {
         invCheck.addEventListener('change', e => {
             sub.isInverted = e.currentTarget.checked;
             appStateInstance.sync(gen.id);
-            
             const nextInvStr = sub.isInverted ? "true" : "false";
             const visualToggle = subEl.querySelector('.sub-invert-toggle');
             visualToggle.setAttribute('data-active', nextInvStr);
@@ -104,7 +96,6 @@ window.ComponentModule_SubOscillator = {
             sub.isMuted = !sub.isMuted;
             appStateInstance.sync(gen.id);
             window.audio.restartSimulation();
-
             const nextMuteStr = sub.isMuted ? "true" : "false";
             muteBtn.setAttribute('data-active', nextMuteStr);
             subEl.querySelector('.sub-mute-dot').setAttribute('data-active', nextMuteStr);
@@ -113,7 +104,6 @@ window.ComponentModule_SubOscillator = {
         subEl.querySelector('.remove-sub-btn').addEventListener('click', () => {
             gen.subOscillators = gen.subOscillators.filter(s => s.id !== sub.id);
             subEl.remove();
-            
             appStateInstance.sync(gen.id);
             window.audio.restartSimulation();
         });

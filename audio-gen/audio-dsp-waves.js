@@ -45,7 +45,7 @@
     const camelScaleCache = new Map();
     const TWO_PI = 6.283185307179586;
 
-    scope.AudioWorker.getWaveSample = function (type, angle, t, frequency, k, pow) {
+    scope.AudioWorker.getWaveSample = function (type, angle, k, pow) {
         angle = angle % TWO_PI;
         angle = (angle + TWO_PI) % TWO_PI;
         const x = angle / TWO_PI;

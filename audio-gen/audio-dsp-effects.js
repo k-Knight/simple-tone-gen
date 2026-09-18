@@ -1,48 +1,38 @@
 window.AudioDspEffects = {
-    processMultiVoiceEffects(engineState, gen, s, activeEffects, sharedPeriod, baseT, sampleRate, getWaveSample) {
-        // --- 1. Compute Base Core Sample ---
-        let currentSample = getWaveSample(gen.type, s.phaseAccumulator, baseT, s.frequency, s.k, s.pow);
+    processMultiVoiceEffects(engineState, gen, s, activeEffects, sampleRate, getWaveSample) {
+        const TWO_PI = 6.283185307179586;
 
-        // --- 2. Dynamic Composite Sub-Oscillators Stage (Isolated Wrapper) ---
+        const basePhaseAngleOffset = gen.timeShift * TWO_PI;
+        const adjustedBaseAngle = s.phaseAccumulator + basePhaseAngleOffset;
+
+        let currentSample = getWaveSample(gen.type, adjustedBaseAngle, s.k, s.pow);
+
         if (gen.subOscillators && gen.subOscillators.length > 0) {
-            let combinedLeft = currentSample;
-
-            // Initialize or reference tracked phase accumulators for sub-oscillators inside our smoothState map
-            if (!s.subPhases) s.subPhases = {};
+            let combinedSampleSum = currentSample;
 
             for (let k = 0; k < gen.subOscillators.length; k++) {
                 const sub = gen.subOscillators[k];
                 if (sub.isMuted) continue;
 
-                if (s.subPhases[sub.id] === undefined) {
-                    s.subPhases[sub.id] = 0;
-                }
+                const derivedSubPhase = s.phaseAccumulator * sub.multiplier;
 
-                // Sub-Frequency calculation: Base frequency * sub multiplier
-                const subFreq = s.frequency * sub.multiplier;
+                const subPhaseAngleOffset = sub.timeShift * TWO_PI;
+                const adjustedSubAngle = derivedSubPhase + basePhaseAngleOffset + subPhaseAngleOffset;
 
-                // Advance phase safely sample-by-sample
-                s.subPhases[sub.id] += (2 * Math.PI * subFreq) / sampleRate;
-                s.subPhases[sub.id] %= (2 * Math.PI);
-
-                const subTimeShift = baseT - sub.timeShift;
-                let subSample = getWaveSample(sub.type, s.subPhases[sub.id], subTimeShift, subFreq, sub.k, sub.pow);
+                let subSample = getWaveSample(sub.type, adjustedSubAngle, sub.k, sub.pow);
 
                 if (sub.isInverted) {
                     subSample = -subSample;
                 }
 
-                // Balance mapping application for the mono summation branch
-                // Pan/Gain logic follows standard generator math rules
                 const subPanNormalized = (sub.pan + 1) / 2;
                 const balanceGainFactor = Math.cos(subPanNormalized * Math.PI / 2) + Math.sin(subPanNormalized * Math.PI / 2);
                 
-                combinedLeft += subSample * sub.loudness * balanceGainFactor;
+                combinedSampleSum += subSample * sub.loudness * balanceGainFactor;
             }
-            currentSample = combinedLeft;
+            currentSample = combinedSampleSum;
         }
 
-        // --- 3. Chain Subsequent Plugin Effects ---
         if (!activeEffects || activeEffects.length === 0) return currentSample;
 
         for (let j = 0; j < activeEffects.length; j++) {
@@ -53,13 +43,15 @@ window.AudioDspEffects = {
             this.ensureSmoothParams(s, fx);
             const smoothFxProxy = this.generateSmoothProxy(s, fx);
 
+            const simulatedBaseT = engineState.phaseTimeline / sampleRate;
+
             currentSample = plugin.process({
                 sample: currentSample,
-                baseT: baseT,
+                baseT: simulatedBaseT,
                 engineState: engineState,
                 smoothState: s,
                 fx: smoothFxProxy,
-                sharedPeriod: sharedPeriod,
+                sharedPeriod: sampleRate,
                 sampleRate: sampleRate,
                 getWaveSample: getWaveSample,
                 waveType: gen.type

@@ -68,8 +68,6 @@ window.AudioDspModule = {
                     s,
                     gen.effects,
                     sampleRate,
-                    baseT,
-                    sampleRate,
                     getWaveSample
                 );
 

@@ -72,7 +72,7 @@ window.Effect_Hyperbolic = {
         state.accumulatedAngle = ((state.accumulatedAngle % (2.0 * Math.PI)) + (2.0 * Math.PI)) % (2.0 * Math.PI);
         state.lastWarpedT = warpedT;
 
-        const warpedSample = getWaveSample(waveType, state.accumulatedAngle, warpedT, smoothState.frequency, smoothState.k, smoothState.pow);
+        const warpedSample = getWaveSample(waveType, state.accumulatedAngle, smoothState.k, smoothState.pow);
         return sample * (1.0 - intensity) + warpedSample * intensity;
     }
 };

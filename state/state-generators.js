@@ -145,7 +145,7 @@ window.StateGeneratorsModule = {
                 g.frequency = Math.max(20, Math.min(20000, parseFloat(g.frequency) || 200));
                 g.loudness = Math.max(0, Math.min(1, parseFloat(g.loudness) || 0));
                 g.pan = Math.max(-1, Math.min(1, parseFloat(g.pan) || 0));
-                g.timeShift = Math.max(0, Math.min(0.05, parseFloat(g.timeShift) || 0));
+                g.timeShift = Math.max(-2.0, Math.min(2.0, parseFloat(g.timeShift) || 0));
                 g.pow = Math.max(0.01, Math.min(100, parseFloat(g.pow) || 1));
 
                 if (state.waveProfiles && state.waveProfiles[g.type]) {

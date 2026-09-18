@@ -29,14 +29,12 @@ window.Effect_Unison = {
         const detuneAngleOffset = 2 * Math.PI * fx.superDetune * baseT;
 
         if (mode === 0 || mode === 1) {
-            let fUpper = smoothState.frequency + fx.superDetune;
             let targetAngleUpper = masterPhase + detuneAngleOffset;
-            unisonMix += getWaveSample(waveType, targetAngleUpper, baseT, fUpper, smoothState.k, smoothState.pow) * fx.superLoudness;
+            unisonMix += getWaveSample(waveType, targetAngleUpper, smoothState.k, smoothState.pow) * fx.superLoudness;
         }
         if (mode === 0 || mode === 2) {
-            let fLower = smoothState.frequency - fx.superDetune;
             let targetAngleLower = masterPhase - detuneAngleOffset;
-            unisonMix += getWaveSample(waveType, targetAngleLower, baseT, fLower, smoothState.k, smoothState.pow) * fx.superLoudness;
+            unisonMix += getWaveSample(waveType, targetAngleLower, smoothState.k, smoothState.pow) * fx.superLoudness;
         }
 
         return unisonMix / (1.0 + (mode === 0 ? 2 : 1) * fx.superLoudness);

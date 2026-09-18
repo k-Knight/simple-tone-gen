@@ -51,7 +51,7 @@ window.ComponentModule_Oscillator = {
                         ${knob(gen, 'frequency', 'Frequency', 20, 20000, 1, true, 'Hz', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'loudness', 'Loudness', 0, 1, 0.01, false, '%', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'pan', 'Balance', -1, 1, 0.01, false, 'Bal', () => appStateInstance.sync(gen.id), 'cyan')}
-                        ${knob(gen, 'timeShift', 'Time Shift', 0, 0.05, 0.0001, false, 'Sec', () => appStateInstance.sync(gen.id), 'cyan')}
+                        ${knob(gen, 'timeShift', 'Phase Offset', -2, 2, 0.001, false, 'T', () => appStateInstance.sync(gen.id), 'cyan')}
 
                         ${(() => {
                             const p = appStateInstance.waveProfiles[gen.type];
@@ -126,7 +126,7 @@ window.ComponentModule_Oscillator = {
                 const newSub = {
                     id: crypto.randomUUID(),
                     type: 'sine',
-                    multiplier: 0.5,
+                    multiplier: 1.0,
                     loudness: 0.20,
                     pan: 0.0,
                     timeShift: 0.0,

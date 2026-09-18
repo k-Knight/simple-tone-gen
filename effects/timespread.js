@@ -20,31 +20,24 @@ window.Effect_TimeSpread = {
     },
 
     process(ctx) {
-        const { sample, baseT, smoothState, fx, getWaveSample, waveType } = ctx;
+        const { sample, smoothState, fx, getWaveSample, waveType } = ctx;
+        const TWO_PI = 6.283185307179586;
 
         const mode = Math.round(fx.spreadMode);
         let subOscillationMix = 0;
 
-        const freq = smoothState.frequency > 0 ? smoothState.frequency : 200;
-
-        const localTimeOffset = fx.periodOffset / freq;
         const baseAngle = smoothState.phaseAccumulator;
-        const phaseRotationOffset = 2.0 * Math.PI * fx.periodOffset;
+        const phaseRotationOffset = fx.periodOffset * TWO_PI;
 
         if (mode === 0) {
             let rotatedAngle = baseAngle - phaseRotationOffset;
-            let shiftedT = baseT + localTimeOffset; 
-
-            subOscillationMix = getWaveSample(waveType, rotatedAngle, shiftedT, freq, smoothState.k, smoothState.pow) * fx.spreadLoudness;
+            subOscillationMix = getWaveSample(waveType, rotatedAngle, smoothState.k, smoothState.pow) * fx.spreadLoudness;
         } else {
             let rotatedAnglePlus = baseAngle - phaseRotationOffset;
             let rotatedAngleMinus = baseAngle + phaseRotationOffset;
             
-            let shiftedTPlus = baseT + localTimeOffset;
-            let shiftedTMinus = baseT - localTimeOffset;
-
-            let v1 = getWaveSample(waveType, rotatedAnglePlus, shiftedTPlus, freq, smoothState.k, smoothState.pow);
-            let v2 = getWaveSample(waveType, rotatedAngleMinus, shiftedTMinus, freq, smoothState.k, smoothState.pow);
+            let v1 = getWaveSample(waveType, rotatedAnglePlus, smoothState.k, smoothState.pow);
+            let v2 = getWaveSample(waveType, rotatedAngleMinus, smoothState.k, smoothState.pow);
             subOscillationMix = ((v1 + v2) / 2.0) * fx.spreadLoudness;
         }
 
