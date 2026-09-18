@@ -1,6 +1,7 @@
 window.AudioDspEffects = {
     processMultiVoiceEffects(engineState, gen, s, activeEffects, sampleRate, getWaveSample) {
         const TWO_PI = 6.283185307179586;
+        const freq = s.frequency > 0 ? s.frequency : 200;
 
         const basePhaseAngleOffset = gen.timeShift * TWO_PI;
         const adjustedBaseAngle = s.phaseAccumulator + basePhaseAngleOffset;
@@ -10,14 +11,32 @@ window.AudioDspEffects = {
         if (gen.subOscillators && gen.subOscillators.length > 0) {
             let combinedSampleSum = currentSample;
 
+            if (!s.subPhases) s.subPhases = {};
+
             for (let k = 0; k < gen.subOscillators.length; k++) {
                 const sub = gen.subOscillators[k];
                 if (sub.isMuted) continue;
 
-                const derivedSubPhase = s.phaseAccumulator * sub.multiplier;
+                const subFreq = freq * sub.multiplier;
+                let adjustedSubAngle = 0;
 
-                const subPhaseAngleOffset = sub.timeShift * TWO_PI;
-                const adjustedSubAngle = derivedSubPhase + basePhaseAngleOffset + subPhaseAngleOffset;
+                const isIntegerHarmonic = sub.multiplier >= 1.0 && Number.isInteger(sub.multiplier);
+
+                if (isIntegerHarmonic) {
+                    const derivedSubPhase = s.phaseAccumulator * sub.multiplier;
+                    const subPhaseAngleOffset = sub.timeShift * TWO_PI;
+                    adjustedSubAngle = derivedSubPhase + basePhaseAngleOffset + subPhaseAngleOffset;
+                } else {
+                    if (s.subPhases[sub.id] === undefined) {
+                        s.subPhases[sub.id] = 0;
+                    }
+
+                    s.subPhases[sub.id] += (TWO_PI * subFreq) / sampleRate;
+                    s.subPhases[sub.id] %= TWO_PI;
+
+                    const subPhaseAngleOffset = sub.timeShift * TWO_PI;
+                    adjustedSubAngle = s.subPhases[sub.id] + basePhaseAngleOffset + subPhaseAngleOffset;
+                }
 
                 let subSample = getWaveSample(sub.type, adjustedSubAngle, sub.k, sub.pow);
 
