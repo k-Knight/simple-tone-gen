@@ -3,7 +3,7 @@ window.Effect_DelayReverb = {
     label: 'Spatial Tape Echo & Delay',
     theme: 'indigo',
     knobs: [
-        { key: 'time',      label: 'Delay Time',    min: 0.01, max: 1.0,  step: 0.01, isLog: false, unit: 'Sec' },
+        { key: 'time',      label: 'Delay Time',    min: 0.0001, max: 1.0,  step: 0.0001, isLog: true, unit: 'Sec' },
         { key: 'feedback',  label: 'Feedback',      min: 0.0,  max: 0.95, step: 0.01, isLog: false, unit: 'Fdbk' },
         { key: 'dampen',    label: 'Space Damp',    min: 0.0,  max: 0.9,  step: 0.01, isLog: false, unit: 'Damp' },
         { key: 'jitter',    label: 'Timing Jitter', min: 0.0,  max: 50.0, step: 0.1,  isLog: false, unit: 'Fltr' },
