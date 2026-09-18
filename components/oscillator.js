@@ -67,6 +67,27 @@ window.ComponentModule_Oscillator = {
 
                     <div class="mt-4 pt-4 border-t border-zinc-800/50 space-y-3">
                         <div class="flex flex-wrap items-center gap-2 w-full">
+                            <!-- Keep your existing Effect Add buttons intact here -->
+
+                            <!-- Add Sub Oscillator Button -->
+                            <button class="add-sub-osc-btn px-3 py-1.5 border border-cyan-900 bg-cyan-950/30 hover:bg-cyan-900/40 text-cyan-400 rounded-xl text-xs font-bold uppercase transition-all tracking-wide cursor-pointer flex items-center gap-2">
+                                <div class="flex items-center justify-center">${icons.add}</div>
+                                <span>Add Sub-Oscillator</span>
+                            </button>
+                        </div>
+
+                        <!-- Sub Oscillators Content Container -->
+                        <div class="sub-oscillators-mount-point space-y-2">
+                            ${(gen.subOscillators || []).map((sub, sIdx) => window.ComponentModule_SubOscillator.render(gen, sub, sIdx, appStateInstance))}
+                        </div>
+
+                        <div class="effects-display-mount-point space-y-3">
+                            ${gen.effects.map(fx => window.ComponentModule_EffectPanels.render(gen, fx, appStateInstance))}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-zinc-800/50 space-y-3">
+                        <div class="flex flex-wrap items-center gap-2 w-full">
                             ${Object.keys(window.EffectRegistry).map(key => {
                                 if (typeof window.EffectRegistry[key] === 'function') return null;
 
@@ -96,6 +117,36 @@ window.ComponentModule_Oscillator = {
         ctrl.setMuteUI(cardEl, gen.isMuted);
 
         ctrl.bindInteractions(cardEl, gen, appStateInstance);
+
+        const addSubBtn = cardEl.querySelector('.add-sub-osc-btn');
+        if (addSubBtn) {
+            addSubBtn.addEventListener('click', () => {
+                if (!gen.subOscillators) gen.subOscillators = [];
+                
+                const newSub = {
+                    id: crypto.randomUUID(),
+                    type: 'sine',
+                    multiplier: 0.5,
+                    loudness: 0.20,
+                    pan: 0.0,
+                    timeShift: 0.0,
+                    k: 0.0,
+                    pow: 1.0,
+                    isInverted: false,
+                    isMuted: false
+                };
+                
+                gen.subOscillators.push(newSub);
+                appStateInstance.sync(gen.id);
+                
+                const mount = cardEl.querySelector('.sub-oscillators-mount-point');
+                if (mount) {
+                    const subRow = window.ComponentModule_SubOscillator.render(gen, newSub, gen.subOscillators.length - 1, appStateInstance);
+                    mount.appendChild(subRow);
+                }
+                window.audio.restartSimulation();
+            });
+        }
 
         return cardEl;
     }
