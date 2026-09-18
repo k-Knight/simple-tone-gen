@@ -1,7 +1,6 @@
 window.ResourceModule_Icons = {
     parseSVG(svgString) {
         const parser = new DOMParser();
-        // Uses XML namespace parsing to guarantee cross-browser vector rendering compliance
         const doc = parser.parseFromString(svgString, "application/xml");
         const svgNode = doc.documentElement;
 

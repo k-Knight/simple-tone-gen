@@ -9,7 +9,6 @@ window.ComponentModule_EffectPanels = {
         return html`
             <div data-fx-id="${fx.id}" class="flex gap-4 p-4 bg-zinc-950/40 border border-${plugin.theme}-900/30 rounded-xl mt-2">
                 
-                <!-- FAR LEFT COLUMN: Themed Reordering Arrow Block Grid Layout -->
                 <div class="flex flex-col gap-1.5 justify-center items-center bg-zinc-900/40 border border-zinc-800/30 p-1.5 rounded-lg select-none">
                     <button onClick=${() => appStateInstance.moveEffectTop(gen.id, fx.id)} class="flex items-center justify-center p-1 w-6 h-6 text-zinc-500 hover:text-${plugin.theme}-400 bg-zinc-950/40 hover:bg-${plugin.theme}-950/30 border border-zinc-800/60 hover:border-${plugin.theme}-800/50 rounded transition-all cursor-pointer" title="Move to Top">
                         ${icons.arrowTop}
@@ -25,7 +24,6 @@ window.ComponentModule_EffectPanels = {
                     </button>
                 </div>
 
-                <!-- RIGHT SECTION: Main Panel Parameter Sliders Dashboard -->
                 <div class="flex-grow space-y-3">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-mono text-${plugin.theme}-400 font-bold uppercase tracking-wider">${plugin.label}</span>

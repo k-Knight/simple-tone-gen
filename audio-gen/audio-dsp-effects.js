@@ -52,7 +52,6 @@ window.AudioDspEffects = {
         sm.p2 += (t2 - sm.p2) * fXFactor;
         sm.p3 += (t3 - sm.p3) * fXFactor;
 
-        // Re-map structural fields safely
         return Object.assign({}, fx, {
             superDetune: sm.p1, spreadTime: sm.p1, warpPeriod: sm.p1,
             superLoudness: sm.p2, spreadLoudness: sm.p2, zeroCutoff: sm.p2,

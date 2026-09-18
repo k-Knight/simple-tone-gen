@@ -7,14 +7,13 @@ function h(type, props, ...children) {
 
     const isSVG = ['svg', 'path', 'line', 'polyline', 'rect', 'circle', 'polygon', 'g'].includes(type);
     const el = isSVG
-        ? document.createElementNS("http://w3.org", type)
+        ? document.createElementNS("http://www.w3.org/2000/svg", type)
         : document.createElement(type);
 
     Object.keys(props).forEach(k => {
         if (k.startsWith('on') && typeof props[k] === 'function') {
             el.addEventListener(k.toLowerCase().substring(2), props[k]);
         } else if (k === 'class') {
-            // Unify class management for SVG elements to force browser style recalculation
             if (isSVG) {
                 el.setAttribute('class', props[k]);
             } else {

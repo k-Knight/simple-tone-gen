@@ -7,10 +7,8 @@ window.ComponentModule_Oscillator = {
         const cardEl = html`
             <div data-osc-id="${gen.id}" class="oscillator-card-root space-y-3 bg-zinc-900/30 p-4 border border-zinc-800/60 rounded-2xl relative transition-all">
                 <section class="p-6 bg-zinc-900/80 border border-zinc-800 rounded-xl shadow-lg">
-                    <!-- FIXED Layout Header: Converted into a clean, two-line layout -->
                     <div class="flex flex-col gap-4 border-b border-zinc-800 pb-4 mb-6 w-full">
                         
-                        <!-- FIRST LINE: OSC Label, Invert Toggle, Mute Button, and Close/Remove Button -->
                         <div class="flex items-center justify-between gap-4 w-full">
                             <div class="flex items-center gap-4">
                                 <span class="text-xs font-mono px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400">OSC #${index + 1}</span>
@@ -38,7 +36,6 @@ window.ComponentModule_Oscillator = {
                             </button>
                         </div>
 
-                        <!-- SECOND LINE: Wave selectors expanding across all available width with multi-line wrap spillover -->
                         <div class="wave-type-selectors-container flex flex-wrap bg-zinc-950 p-1 border border-zinc-800 rounded-xl text-xs w-full">
                             ${appStateInstance.waveTypes.map(w => html`
                                 <button data-wave="${w}"

@@ -4,8 +4,8 @@ window.AppStateModule = {
             generators: [],
             waveProfiles: {
                 sine:       { min: -0.999,    max: 0.999,  step: 0.001, default: 0 },
-                square:     { min: 0,    max: 1,  step: 0.001, default: 0.5 },
                 sawtooth:   { min: 0.5,  max: 100,  step: 0.001, default: 0.5 },
+                square:     { min: 0,    max: 1,  step: 0.001, default: 0.5 },
                 triangle:   { min: 0,    max: 100,  step: 0.001, default: 0 },
                 sharktooth: { min: 0,    max: 100,  step: 0.001, default: 0.5 },
                 scallop:    { min: 0,    max: 100,  step: 0.001, default: 0.5 },
