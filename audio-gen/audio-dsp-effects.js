@@ -1,9 +1,16 @@
+const phaseSmoothFactor = 0.005;
+const TWO_PI = 6.283185307179586;
+
 window.AudioDspEffects = {
     processMultiVoiceEffects(engineState, gen, s, activeEffects, sampleRate, getWaveSample) {
-        const TWO_PI = 6.283185307179586;
         const freq = s.frequency > 0 ? s.frequency : 200;
 
-        const basePhaseAngleOffset = gen.timeShift * TWO_PI;
+        if (s.smoothTimeShift === undefined) {
+            s.smoothTimeShift = gen.timeShift;
+        }
+        s.smoothTimeShift += (gen.timeShift - s.smoothTimeShift) * phaseSmoothFactor;
+
+        const basePhaseAngleOffset = s.smoothTimeShift * TWO_PI;
         const adjustedBaseAngle = s.phaseAccumulator + basePhaseAngleOffset;
 
         let currentSample = getWaveSample(gen.type, adjustedBaseAngle, s.k, s.pow);
@@ -12,6 +19,7 @@ window.AudioDspEffects = {
             let combinedSampleSum = currentSample;
 
             if (!s.subPhases) s.subPhases = {};
+            if (!s.smoothSubTimeShifts) s.smoothSubTimeShifts = {};
 
             for (let k = 0; k < gen.subOscillators.length; k++) {
                 const sub = gen.subOscillators[k];
@@ -22,9 +30,15 @@ window.AudioDspEffects = {
 
                 const isIntegerHarmonic = sub.multiplier >= 1.0 && Number.isInteger(sub.multiplier);
 
+                if (s.smoothSubTimeShifts[sub.id] === undefined) {
+                    s.smoothSubTimeShifts[sub.id] = sub.timeShift;
+                }
+                s.smoothSubTimeShifts[sub.id] += (sub.timeShift - s.smoothSubTimeShifts[sub.id]) * phaseSmoothFactor;
+                
+                const subPhaseAngleOffset = s.smoothSubTimeShifts[sub.id] * TWO_PI;
+
                 if (isIntegerHarmonic) {
                     const derivedSubPhase = s.phaseAccumulator * sub.multiplier;
-                    const subPhaseAngleOffset = sub.timeShift * TWO_PI;
                     adjustedSubAngle = derivedSubPhase + basePhaseAngleOffset + subPhaseAngleOffset;
                 } else {
                     if (s.subPhases[sub.id] === undefined) {
@@ -34,7 +48,6 @@ window.AudioDspEffects = {
                     s.subPhases[sub.id] += (TWO_PI * subFreq) / sampleRate;
                     s.subPhases[sub.id] %= TWO_PI;
 
-                    const subPhaseAngleOffset = sub.timeShift * TWO_PI;
                     adjustedSubAngle = s.subPhases[sub.id] + basePhaseAngleOffset + subPhaseAngleOffset;
                 }
 
