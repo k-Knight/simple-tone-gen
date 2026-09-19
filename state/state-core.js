@@ -75,6 +75,7 @@ window.AppStateModule = {
                                     </button>
                                 </div>
                             </div>
+                            <div id="customWaveformContainer"></div>
                             <div class="h-32 w-full bg-zinc-950 border border-zinc-800/80 rounded-xl overflow-hidden relative">
                                 <canvas id="scopeCanvas" class="w-full h-full block"></canvas>
                             </div>
@@ -110,6 +111,11 @@ window.AppStateModule = {
                 any('#recDurationInput').on('input', e => { this.recordDuration = parseInt(e.currentTarget.value) || 2; });
                 any('#exportWavButton').on('click', () => this.triggerRecord());
                 any('#addOscillatorButton').on('click', () => this.addGenerator());
+
+                const waveContainer = document.getElementById('customWaveformContainer');
+                if (waveContainer) {
+                    waveContainer.appendChild(window.ComponentModule_CustomWaveCanvas.render(this));
+                }
             },
 
             triggerRecord() {
