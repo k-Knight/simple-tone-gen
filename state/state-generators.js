@@ -142,7 +142,7 @@ window.StateGeneratorsModule = {
             },
 
             validateAndSync(g) {
-                g.frequency = Math.max(20, Math.min(20000, parseFloat(g.frequency) || 200));
+                g.frequency = Math.max(ABSOLUTE_MIN_FREQ, Math.min(ABSOLUTE_MAX_FREQ, parseFloat(g.frequency) || 200));
                 g.loudness = Math.max(0, Math.min(1, parseFloat(g.loudness) || 0));
                 g.pan = Math.max(-1, Math.min(1, parseFloat(g.pan) || 0));
                 g.timeShift = Math.max(-2.0, Math.min(2.0, parseFloat(g.timeShift) || 0));

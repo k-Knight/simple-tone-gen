@@ -1,69 +1,12 @@
-const phaseSmoothFactor = 0.005;
-const TWO_PI = 6.283185307179586;
-
 window.AudioDspEffects = {
-    processMultiVoiceEffects(engineState, gen, s, activeEffects, sampleRate, getWaveSample) {
-        const freq = s.frequency > 0 ? s.frequency : 200;
-
-        if (s.smoothTimeShift === undefined) {
-            s.smoothTimeShift = gen.timeShift;
-        }
-        s.smoothTimeShift += (gen.timeShift - s.smoothTimeShift) * phaseSmoothFactor;
+    processMultiVoiceEffects(engineState, gen, s, activeEffects, sampleRate, compositeWaveSampleClosure) {
+        if (s.smoothTimeShift === undefined) s.smoothTimeShift = gen.timeShift;
+        s.smoothTimeShift += (gen.timeShift - s.smoothTimeShift) * PHASE_SMOOTH_FACTOR;
 
         const basePhaseAngleOffset = s.smoothTimeShift * TWO_PI;
         const adjustedBaseAngle = s.phaseAccumulator + basePhaseAngleOffset;
 
-        let currentSample = getWaveSample(gen.type, adjustedBaseAngle, s.k, s.pow);
-
-        if (gen.subOscillators && gen.subOscillators.length > 0) {
-            let combinedSampleSum = currentSample;
-
-            if (!s.subPhases) s.subPhases = {};
-            if (!s.smoothSubTimeShifts) s.smoothSubTimeShifts = {};
-
-            for (let k = 0; k < gen.subOscillators.length; k++) {
-                const sub = gen.subOscillators[k];
-                if (sub.isMuted) continue;
-
-                const subFreq = freq * sub.multiplier;
-                let adjustedSubAngle = 0;
-
-                const isIntegerHarmonic = sub.multiplier >= 1.0 && Number.isInteger(sub.multiplier);
-
-                if (s.smoothSubTimeShifts[sub.id] === undefined) {
-                    s.smoothSubTimeShifts[sub.id] = sub.timeShift;
-                }
-                s.smoothSubTimeShifts[sub.id] += (sub.timeShift - s.smoothSubTimeShifts[sub.id]) * phaseSmoothFactor;
-                
-                const subPhaseAngleOffset = s.smoothSubTimeShifts[sub.id] * TWO_PI;
-
-                if (isIntegerHarmonic) {
-                    const derivedSubPhase = s.phaseAccumulator * sub.multiplier;
-                    adjustedSubAngle = derivedSubPhase + basePhaseAngleOffset + subPhaseAngleOffset;
-                } else {
-                    if (s.subPhases[sub.id] === undefined) {
-                        s.subPhases[sub.id] = 0;
-                    }
-
-                    s.subPhases[sub.id] += (TWO_PI * subFreq) / sampleRate;
-                    s.subPhases[sub.id] %= TWO_PI;
-
-                    adjustedSubAngle = s.subPhases[sub.id] + basePhaseAngleOffset + subPhaseAngleOffset;
-                }
-
-                let subSample = getWaveSample(sub.type, adjustedSubAngle, sub.k, sub.pow);
-
-                if (sub.isInverted) {
-                    subSample = -subSample;
-                }
-
-                const subPanNormalized = (sub.pan + 1) / 2;
-                const balanceGainFactor = Math.cos(subPanNormalized * Math.PI / 2) + Math.sin(subPanNormalized * Math.PI / 2);
-                
-                combinedSampleSum += subSample * sub.loudness * balanceGainFactor;
-            }
-            currentSample = combinedSampleSum;
-        }
+        let currentSample = compositeWaveSampleClosure(gen.type, adjustedBaseAngle, s.k, s.pow);
 
         if (!activeEffects || activeEffects.length === 0) return currentSample;
 
@@ -74,7 +17,6 @@ window.AudioDspEffects = {
 
             this.ensureSmoothParams(s, fx);
             const smoothFxProxy = this.generateSmoothProxy(s, fx);
-
             const simulatedBaseT = engineState.phaseTimeline / sampleRate;
 
             currentSample = plugin.process({
@@ -85,10 +27,11 @@ window.AudioDspEffects = {
                 fx: smoothFxProxy,
                 sharedPeriod: sampleRate,
                 sampleRate: sampleRate,
-                getWaveSample: getWaveSample,
+                getWaveSample: compositeWaveSampleClosure,
                 waveType: gen.type
             });
         }
+
         return currentSample;
     },
 
@@ -108,15 +51,14 @@ window.AudioDspEffects = {
 
     generateSmoothProxy(s, fx) {
         const sm = s.fxSmoothParams[fx.id];
-        const fXFactor = 0.005;
 
         const t1 = parseFloat(fx.superDetune ?? fx.spreadTime ?? fx.warpPeriod ?? 0);
         const t2 = parseFloat(fx.superLoudness ?? fx.spreadLoudness ?? fx.zeroCutoff ?? 0);
         const t3 = parseFloat(fx.warpIntensity ?? fx.spreadMode ?? fx.superMode ?? 0);
 
-        sm.p1 += (t1 - sm.p1) * fXFactor;
-        sm.p2 += (t2 - sm.p2) * fXFactor;
-        sm.p3 += (t3 - sm.p3) * fXFactor;
+        sm.p1 += (t1 - sm.p1) * FX_SMOOTH_FACTOR;
+        sm.p2 += (t2 - sm.p2) * FX_SMOOTH_FACTOR;
+        sm.p3 += (t3 - sm.p3) * FX_SMOOTH_FACTOR;
 
         return Object.assign({}, fx, {
             superDetune: sm.p1, spreadTime: sm.p1, warpPeriod: sm.p1,

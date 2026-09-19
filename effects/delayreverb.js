@@ -38,7 +38,7 @@ window.Effect_DelayReverb = {
 
         if (!engineState.delayBuffers.has(stateId)) {
             engineState.delayBuffers.set(stateId, {
-                buffer: new Float32Array(48000),
+                buffer: new Float32Array(SAMPLE_RATE),
                 writePtr: 0,
                 lastOutput: 0,
                 noisePhase: Math.random()
@@ -58,10 +58,10 @@ window.Effect_DelayReverb = {
         const fraction = exactDelaySamples - baseOffsetIdx;
 
         let readPtr1 = dState.writePtr - baseOffsetIdx;
-        if (readPtr1 < 0) readPtr1 += 48000;
+        if (readPtr1 < 0) readPtr1 += SAMPLE_RATE;
         
         let readPtr2 = readPtr1 - 1;
-        if (readPtr2 < 0) readPtr2 += 48000;
+        if (readPtr2 < 0) readPtr2 += SAMPLE_RATE;
 
         const sample1 = dBuf[readPtr1];
         const sample2 = dBuf[readPtr2];
@@ -71,7 +71,7 @@ window.Effect_DelayReverb = {
         dState.lastOutput = delayedSample + (dState.lastOutput - delayedSample) * dampen;
 
         dBuf[dState.writePtr] = sample + dState.lastOutput * feedback;
-        dState.writePtr = (dState.writePtr + 1) % 48000;
+        dState.writePtr = (dState.writePtr + 1) % SAMPLE_RATE;
 
         return sample * (1.0 - mix) + dState.lastOutput * mix;
     }

@@ -21,7 +21,6 @@ window.Effect_TimeSpread = {
 
     process(ctx) {
         const { sample, smoothState, fx, getWaveSample, waveType } = ctx;
-        const TWO_PI = 6.283185307179586;
 
         const mode = Math.round(fx.spreadMode);
         let subOscillationMix = 0;

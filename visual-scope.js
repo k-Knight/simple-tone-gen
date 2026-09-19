@@ -4,8 +4,6 @@ window.VisualScopeModule = {
         if (!canvas) { requestAnimationFrame(() => this.draw(audioInstance)); return; }
         const ctx = canvas.getContext('2d');
 
-        const VISUAL_POINTS = 800; 
-
         const renderLoop = () => {
             requestAnimationFrame(renderLoop);
             if (!canvas) return;

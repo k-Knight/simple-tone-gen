@@ -48,7 +48,7 @@ window.ComponentModule_Oscillator = {
                     </div>
 
                     <div class="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3 justify-center">
-                        ${knob(gen, 'frequency', 'Frequency', 20, 20000, 1, true, 'Hz', () => appStateInstance.sync(gen.id), 'cyan')}
+                        ${knob(gen, 'frequency', 'Frequency', ABSOLUTE_MIN_FREQ, ABSOLUTE_MAX_FREQ, 1, true, 'Hz', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'loudness', 'Loudness', 0, 1, 0.01, false, '%', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'pan', 'Balance', -1, 1, 0.01, false, 'Bal', () => appStateInstance.sync(gen.id), 'cyan')}
                         ${knob(gen, 'timeShift', 'Phase Offset', -2, 2, 0.001, false, 'T', () => appStateInstance.sync(gen.id), 'cyan')}

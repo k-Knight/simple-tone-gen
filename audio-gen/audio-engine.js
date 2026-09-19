@@ -1,7 +1,7 @@
 class UnifiedAudioEngine {
     constructor() {
         this.ctx = null;
-        this.bufferLength = 2048;
+        this.bufferLength = BUFFER_LENGTH;
         this.savedMasterVolume = 0.5;
         this.masterVolumeLevel = 0.5;
 
@@ -36,7 +36,7 @@ class UnifiedAudioEngine {
         if (this.ctx) return;
 
         this.ctx = new (window.AudioContext || window.webkitAudioContext)({
-            sampleRate: 48000,
+            sampleRate: SAMPLE_RATE,
             latencyHint: "interactive"
         });
 
@@ -45,7 +45,7 @@ class UnifiedAudioEngine {
         this.masterGain.gain.setValueAtTime(this.savedMasterVolume, this.ctx.currentTime);
 
         this.analyser = this.ctx.createAnalyser();
-        this.analyser.fftSize = 2048;
+        this.analyser.fftSize = BUFFER_LENGTH;
         this.analyser.connect(this.masterGain);
 
         this.nextScheduleTime = this.ctx.currentTime + 0.05;
@@ -80,7 +80,7 @@ class UnifiedAudioEngine {
         const leftChannel = new Float32Array(this.bufferLength);
         const rightChannel = new Float32Array(this.bufferLength);
 
-        window.AudioDspModule.calculateBlock(this, this.bufferLength, leftChannel, rightChannel, 48000);
+        window.AudioDspModule.calculateBlock(this, this.bufferLength, leftChannel, rightChannel, SAMPLE_RATE);
 
         if (this.isRecording) {
             if (this.recordedLeft.length * this.bufferLength < this.maxRecordSamples) {
@@ -120,7 +120,7 @@ class UnifiedAudioEngine {
         this.phaseTimeline = 0;
         this.smoothWarpPeriod = 0.15;
         this.smoothState.clear();
-        this.visualBuffer = new Float32Array(800);
+        this.visualBuffer = new Float32Array(VISUAL_POINTS);
 
         for (let fxId in this.fxState) {
             if (this.fxState.hasOwnProperty(fxId)) {
@@ -137,7 +137,7 @@ class UnifiedAudioEngine {
         this.currentRecordSeconds = seconds;
         this.recordedLeft = [];
         this.recordedRight = [];
-        this.maxRecordSamples = seconds * 48000;
+        this.maxRecordSamples = seconds * SAMPLE_RATE;
 
         this.phaseTimeline = 0;
         this.smoothState.clear();
@@ -158,8 +158,8 @@ class UnifiedAudioEngine {
         view.setUint32(16, 16, true);
         view.setUint16(20, 3, true);
         view.setUint16(22, 1, true);
-        view.setUint32(24, 48000, true);
-        view.setUint32(28, 48000 * 4, true);
+        view.setUint32(24, SAMPLE_RATE, true);
+        view.setUint32(28, SAMPLE_RATE * 4, true);
         view.setUint16(32, 4, true);
         view.setUint16(34, 32, true);
         writeString(36, 'data');
@@ -188,7 +188,7 @@ class UnifiedAudioEngine {
         this.generators.set(id, { type: 'sine', isInverted: false, frequency: 200, loudness: 0.25, pan: 0.0, timeShift: 0.0, k: 0.0, pow: 1.0, isMuted: false, effects: [] });
 
         if (window.AudioWorker && window.AudioWorker.resetScopeState) {
-            window.AudioWorker.resetScopeState(this.generators, 48000);
+            window.AudioWorker.resetScopeState(this.generators, SAMPLE_RATE);
         }
     }
 
@@ -199,7 +199,7 @@ class UnifiedAudioEngine {
         this.generators.delete(id);
         this.smoothState.delete(id);
         if (window.AudioWorker && window.AudioWorker.resetScopeState) {
-            window.AudioWorker.resetScopeState(this.generators, 48000);
+            window.AudioWorker.resetScopeState(this.generators, SAMPLE_RATE);
         }
     }
 }
