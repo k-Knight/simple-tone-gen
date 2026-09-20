@@ -1,117 +1,93 @@
 window.ComponentModule_CustomWaveController = {
     updateAllCanvases(state, size, elements) {
-        const table = state.customWaveTable;
-        
-        const renderCanvas = (canvasEl, isMain) => {
-            if (!canvasEl) return;
-            const ctx = canvasEl.getContext('2d');
-            ctx.clearRect(0, 0, size, size);
-
-            // Draw center gray 0-reference timeline
-            ctx.strokeStyle = isMain ? '#27272a' : '#18181b';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(0, size / 2);
-            ctx.lineTo(size, size / 2);
-            ctx.stroke();
-
-            // Draw waveform path line
-            ctx.strokeStyle = isMain ? '#22d3ee' : '#71717a';
-            ctx.lineWidth = isMain ? 2.5 : 1.5;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.beginPath();
-
-            for (let i = 0; i < 1024; i++) {
-                const pctX = i / 1023;
-                const valY = table[i]; 
-                const drawX = pctX * size;
-                const drawY = (size / 2) - (valY * (size / 2 - 2));
-
-                if (i === 0) ctx.moveTo(drawX, drawY);
-                else ctx.lineTo(drawX, drawY);
-            }
-            ctx.stroke();
-        };
-
-        renderCanvas(elements.centerCanvas, true);
-        renderCanvas(elements.leftCanvas, false);
-        renderCanvas(elements.rightCanvas, false);
-        this.renderTableData(elements.previewGrid, table);
-    },
-
-    handleDrawPosition(clientX, clientY, state, size, lastX, elements) {
-        if (!elements.centerCanvas) return lastX;
-        const rect = elements.centerCanvas.getBoundingClientRect();
-        
-        const currentX = Math.max(0, Math.min(size, clientX - rect.left));
-        const currentY = Math.max(0, Math.min(size, clientY - rect.top));
-
-        const normalizedValue = ((size / 2) - currentY) / (size / 2 - 2);
-        const boundedValue = Math.max(-1.0, Math.min(1.0, normalizedValue));
-        const targetTableIdx = Math.floor((currentX / size) * 1023);
-
-        if (lastX === null) {
-            state.customWaveTable[targetTableIdx] = boundedValue;
-        } else {
-            const startIdx = Math.min(lastX, targetTableIdx);
-            const endIdx = Math.max(lastX, targetTableIdx);
-            
-            if (startIdx === endIdx) {
-                state.customWaveTable[startIdx] = boundedValue;
-            } else {
-                const startVal = state.customWaveTable[lastX];
-                for (let i = startIdx; i <= endIdx; i++) {
-                    const interpolPct = (i - lastX) / (targetTableIdx - lastX);
-                    state.customWaveTable[i] = startVal + (boundedValue - startVal) * interpolPct;
-                }
-            }
+        if (!state.splineNodes) {
+            state.splineNodes = [
+                { id: crypto.randomUUID(), x: 0.0, y: 0.01, isFixed: true },
+                { id: crypto.randomUUID(), x: 1.0, y: -0.01, isFixed: true }
+            ];
         }
 
-        this.updateAllCanvases(state, size, elements);
-        return targetTableIdx;
+        this.generateTableFromSplines(state);
+
+        const view = window.ComponentModule_CustomWaveCanvasRenderer;
+        view.renderCanvasFrame(elements.centerCanvas, state.customWaveTable, state.splineNodes, state.activeDragNode, size, true);
+        view.renderCanvasFrame(elements.leftCanvas, state.customWaveTable, null, null, size, false);
+        view.renderCanvasFrame(elements.rightCanvas, state.customWaveTable, null, null, size, false);
+    },
+
+    generateTableFromSplines(state) {
+        const math = window.ComponentModule_CustomWaveMath;
+        const len = state.customWaveTable.length;
+        const nodes = [...state.splineNodes].sort((a, b) => a.x - b.x);
+        const tension = state.splineTension ?? 0.0;
+
+        const tangents = math.calculateTangents(nodes, tension, state);
+
+        for (let i = 0; i < len; i++) {
+            const targetX = i / (len - 1);
+            state.customWaveTable[i] = math.sampleSpline(targetX, nodes, tangents, tension);
+        }
+    },
+
+    findClosestNode(clientX, clientY, state, size, canvasEl) {
+        const nativeCanvas = canvasEl.getBoundingClientRect ? canvasEl : (canvasEl.first || canvasEl);
+        if (!nativeCanvas || typeof nativeCanvas.getBoundingClientRect !== 'function') return null;
+
+        const rect = nativeCanvas.getBoundingClientRect();
+        const mouseX = (clientX - rect.left) / size;
+        const mouseY = ((size / 2) - (clientY - rect.top)) / (size / 2 - 2);
+
+        let closest = null;
+        let minDistance = 0.08; 
+
+        state.splineNodes.forEach(node => {
+            const dx = node.x - mouseX;
+            const dy = node.y - mouseY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDistance) {
+                minDistance = dist;
+                closest = node;
+            }
+        });
+        return closest;
+    },
+
+    addNode(clientX, clientY, state, size, canvasEl) {
+        const nativeCanvas = canvasEl.getBoundingClientRect ? canvasEl : (canvasEl.first || canvasEl);
+        if (!nativeCanvas || typeof nativeCanvas.getBoundingClientRect !== 'function') return;
+
+        const rect = nativeCanvas.getBoundingClientRect();
+        const posX = Math.max(0.01, Math.min(0.99, (clientX - rect.left) / size));
+        const posY = Math.max(-1.0, Math.min(1.0, ((size / 2) - (clientY - rect.top)) / (size / 2 - 2)));
+
+        state.splineNodes.push({ id: crypto.randomUUID(), x: posX, y: posY });
+    },
+
+    removeNode(node, state) {
+        if (node.isFixed) return;
+        state.splineNodes = state.splineNodes.filter(n => n.id !== node.id);
+    },
+
+    resizeWaveTable(state, newSize) {
+        state.customWaveTable = new Float32Array(newSize);
+        this.generateTableFromSplines(state);
     },
 
     normalizeWave(state) {
-        const table = state.customWaveTable;
-        let maxVal = 0;
+        if (!state.splineNodes || state.splineNodes.length < 2) return;
+        
+        const math = window.ComponentModule_CustomWaveMath;
+        const nodes = [...state.splineNodes].sort((a, b) => a.x - b.x);
+        const tension = state.splineTension ?? 0.0;
 
-        for (let i = 0; i < 1024; i++) {
-            const abs = Math.abs(table[i]);
-            if (abs > maxVal) maxVal = abs;
-        }
+        const tangents = math.calculateTangents(nodes, tension, state);
+        const peak = math.findTruePeak(nodes, tangents, tension);
 
-        if (maxVal > 0.0001) {
-            const scaleFactor = 1.0 / maxVal;
-            for (let i = 0; i < 1024; i++) {
-                table[i] = table[i] * scaleFactor;
+        const scaleFactor = 1.0 / peak;
+        state.splineNodes.forEach(node => {
+            if (!node.isFixed || node.y !== 0) {
+                node.y = Math.max(-1.0, Math.min(1.0, node.y * scaleFactor));
             }
-        }
-    },
-
-    smoothWave(state) {
-        const table = state.customWaveTable;
-        const smoothed = new Float32Array(1024);
-        const radius = 8;
-
-        for (let i = 0; i < 1024; i++) {
-            let sum = 0;
-            for (let w = -radius; w <= radius; w++) {
-                let idx = (i + w) % 1024;
-                if (idx < 0) idx += 1024;
-                sum += table[idx];
-            }
-            smoothed[i] = sum / (radius * 2 + 1);
-        }
-        state.customWaveTable = smoothed;
-    },
-
-    renderTableData(element, table) {
-        if (!element) return;
-        let htmlStr = '';
-        for (let i = 0; i < 1024; i += 4) {
-            htmlStr += `<div>[${String(i).padStart(3, '0')}]: ${table[i].toFixed(2)}</div>`;
-        }
-        element.innerHTML = htmlStr;
+        });
     }
 };
