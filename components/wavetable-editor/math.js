@@ -1,43 +1,40 @@
 window.ComponentModule_CustomWaveMath = {
-    calculateTangents(nodes, tension) {
-        const numNodes = nodes.length;
-        const tangents = new Float32Array(numNodes);
-        
-        for (let i = 0; i < numNodes; i++) {
-            if (i === 0) {
-                tangents[i] = (nodes[1].y - nodes[0].y) / Math.max(0.0001, nodes[1].x - nodes[0].x);
-            } else if (i === numNodes - 1) {
-                tangents[i] = (nodes[numNodes - 1].y - nodes[numNodes - 2].y) / Math.max(0.0001, nodes[numNodes - 1].x - nodes[numNodes - 2].x);
-            } else {
-                const dx1 = nodes[i].x - nodes[i - 1].x;
-                const dx2 = nodes[i + 1].x - nodes[i].x;
-                const slope1 = (nodes[i].y - nodes[i - 1].y) / Math.max(0.0001, dx1);
-                const slope2 = (nodes[i + 1].y - nodes[i].y) / Math.max(0.0001, dx2);
-                tangents[i] = (slope1 + slope2) * 0.5;
-            }
-            tangents[i] *= (1.0 - tension);
-        }
-        return tangents;
-    },
-    
     calculateTangents(nodes, tension, state) {
         const numNodes = nodes.length;
         const tangents = new Float32Array(numNodes);
         const dontLoopSmoothing = state ? state.useSplineSmoothing !== true : false;
-        
+        const lockEndsTogether = state ? state.lockEndsTogether === true : false;
+
         for (let i = 0; i < numNodes; i++) {
             if (dontLoopSmoothing && i === 0) {
                 tangents[i] = (nodes[1].y - nodes[0].y) / Math.max(0.0001, nodes[1].x - nodes[0].x);
             } else if (dontLoopSmoothing && i === numNodes - 1) {
                 tangents[i] = (nodes[numNodes - 1].y - nodes[numNodes - 2].y) / Math.max(0.0001, nodes[numNodes - 1].x - nodes[numNodes - 2].x);
             } else {
-                const idx_prev = dontLoopSmoothing ? i - 1 : (i === 0 ? numNodes - 1 : i - 1);
-                const idx_next = dontLoopSmoothing ? i + 1 : ((i + 1) % numNodes);
+                let idx_prev, idx_next;
 
-                const dx1 = Math.max(0.001, nodes[i].x - nodes[idx_prev].x);
-                const dx2 = Math.max(0.001, nodes[idx_next].x - nodes[i].x);
+                if (i === 0) {
+                    idx_prev = lockEndsTogether ? Math.max(0, numNodes - 2) : numNodes - 1;
+                    idx_next = 1;
+                } else if (i === numNodes - 1) {
+                    idx_prev = numNodes - 2;
+                    idx_next = lockEndsTogether ? Math.min(numNodes - 1, 1) : 0;
+                } else {
+                    idx_prev = i - 1;
+                    idx_next = i + 1;
+                }
+
+                let dx1 = nodes[i].x - nodes[idx_prev].x;
+                if (dx1 <= 0) dx1 += 1.0;
+                dx1 = Math.max(0.001, dx1);
+
+                let dx2 = nodes[idx_next].x - nodes[i].x;
+                if (dx2 <= 0) dx2 += 1.0;
+                dx2 = Math.max(0.001, dx2);
+
                 const slope1 = (nodes[i].y - nodes[idx_prev].y) / Math.max(0.0001, dx1);
                 const slope2 = (nodes[idx_next].y - nodes[i].y) / Math.max(0.0001, dx2);
+
                 tangents[i] = (slope1 + slope2) * 0.5;
             }
             tangents[i] *= (1.0 - tension);
@@ -48,7 +45,7 @@ window.ComponentModule_CustomWaveMath = {
     sampleSpline(targetX, nodes, tangents, tension) {
         const numNodes = nodes.length;
         let idx = 0;
-        
+
         for (let n = 0; n < numNodes - 1; n++) {
             if (targetX >= nodes[n].x && targetX <= nodes[n + 1].x) {
                 idx = n;
@@ -76,11 +73,13 @@ window.ComponentModule_CustomWaveMath = {
         return h00 * n1.y + h10 * h * tangents[idx] + h01 * n2.y + h11 * h * tangents[idx + 1];
     },
 
-    findTruePeak(nodes, tangents, tension) {
-        let absolutePeak = 0.0001;
+    findTrueExtrema(nodes, tangents, tension) {
+        let absoluteMin = Infinity;
+        let absoluteMax = -Infinity;
+
         const checkValue = (val) => {
-            const abs = Math.abs(val);
-            if (abs > absolutePeak) absolutePeak = abs;
+            if (val < absoluteMin) absoluteMin = val;
+            if (val > absoluteMax) absoluteMax = val;
         };
 
         for (let i = 0; i < nodes.length - 1; i++) {
@@ -129,6 +128,12 @@ window.ComponentModule_CustomWaveMath = {
                 }
             }
         }
-        return absolutePeak;
+
+        if (absoluteMin === Infinity) {
+            absoluteMin = -0.0001;
+            absoluteMax = 0.0001;
+        }
+
+        return { min: absoluteMin, max: absoluteMax };
     }
 };

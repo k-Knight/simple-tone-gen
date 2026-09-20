@@ -46,6 +46,7 @@ window.AppStateModule = {
                 root.appendChild(html`
                     <div class="space-y-4">
                         <header class="sticky top-0 z-50 p-6 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-[0_10px_0_0_var(--color-zinc-950,rgb(9_9_11)),0_25px_30px_-5px_rgba(0,0,0,0.5)] space-y-4">
+                            <div id="customWaveformContainer" class="mt-2"></div>
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                                 <div class="md:col-span-5">
                                     <h1 class="text-2xl font-bold bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent select-none">Simple Tone Generator</h1>
@@ -75,7 +76,6 @@ window.AppStateModule = {
                                     </button>
                                 </div>
                             </div>
-                            <div id="customWaveformContainer"></div>
                             <div class="h-32 w-full bg-zinc-950 border border-zinc-800/80 rounded-xl overflow-hidden relative">
                                 <canvas id="scopeCanvas" class="w-full h-full block"></canvas>
                             </div>
@@ -112,9 +112,28 @@ window.AppStateModule = {
                 any('#exportWavButton').on('click', () => this.triggerRecord());
                 any('#addOscillatorButton').on('click', () => this.addGenerator());
 
+                const hiddenModalNode = window.ComponentModule_CustomWaveCanvas.render();
+                document.body.appendChild(hiddenModalNode);
+
                 const waveContainer = document.getElementById('customWaveformContainer');
                 if (waveContainer) {
-                    waveContainer.appendChild(window.ComponentModule_CustomWaveCanvas.render(this));
+                    waveContainer.innerHTML = '';
+
+                    const triggerBtn = html`
+                        <button class="px-4 py-2 bg-zinc-900 border border-cyan-800 hover:border-cyan-700 text-cyan-400 font-bold text-xs rounded-xl uppercase tracking-wide flex items-center gap-1.5 transition-colors cursor-pointer w-full justify-center">
+                            🎛 Open Custom Wave Designer
+                        </button>
+                    `;
+                
+                    triggerBtn.addEventListener('click', () => {
+                        window.openCustomWaveEditor((computedWavetable) => {
+                            console.log("Returned wavetable array data from isolated editor popup:", computedWavetable);
+
+                            this.activeCustomTableResult = computedWavetable;
+                        });
+                    });
+                
+                    waveContainer.appendChild(triggerBtn);
                 }
             },
 
