@@ -159,7 +159,7 @@ window.AppStateModule = {
                     });
                 }
 
-                const hiddenModalNode = window.ComponentModule_CustomWaveCanvas.render(this.customWavetables);
+                const hiddenModalNode = window.ComponentModule_CustomWaveCanvas.render(this);
                 document.body.appendChild(hiddenModalNode);
             },
 

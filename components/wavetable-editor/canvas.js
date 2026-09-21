@@ -14,7 +14,7 @@ window.ComponentModule_CustomWaveDefaultState = () => ({
 });
 
 window.ComponentModule_CustomWaveCanvas = {
-    render(globalCustomWavetables) {
+    render(globalState) {
         const localContext = window.ComponentModule_CustomWaveDefaultState();
         const viewSize = 300;
         const totalWidth = viewSize * 3;
@@ -63,7 +63,7 @@ window.ComponentModule_CustomWaveCanvas = {
                 if (!libPopup || !listContainer) return;
                 listContainer.innerHTML = '';
                 
-                const savedKeys = Object.keys(globalCustomWavetables || {});
+                const savedKeys = Object.keys(globalState.customWavetables || {});
                 
                 if (savedKeys.length === 0) {
                     listContainer.appendChild(html`
@@ -75,7 +75,7 @@ window.ComponentModule_CustomWaveCanvas = {
                             <button class="w-full flex items-center justify-between p-2.5 bg-zinc-950 border border-zinc-800 hover:border-amber-600 rounded text-left text-zinc-300 hover:text-zinc-100 font-bold transition-all cursor-pointer">
                                 <span>📁 ${nameKey}</span>
                                 <span class="text-[9px] uppercase px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 text-zinc-500 rounded">
-                                    ${globalCustomWavetables[nameKey]['editor-state'] ? 'Spline' : 'Raw File'}
+                                    ${globalState.customWavetables[nameKey]['editor-state'] ? 'Spline' : 'Raw File'}
                                 </span>
                             </button>
                         `;
@@ -96,7 +96,7 @@ window.ComponentModule_CustomWaveCanvas = {
             });
         }, 20);
 
-        window.ComponentModule_CustomWaveInteractions.bind(containerEl, localContext, viewSize, globalCustomWavetables);
+        window.ComponentModule_CustomWaveInteractions.bind(containerEl, localContext, viewSize, globalState);
         return containerEl;
     }
 };

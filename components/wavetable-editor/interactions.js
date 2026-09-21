@@ -1,5 +1,5 @@
 window.ComponentModule_CustomWaveInteractions = {
-    bind(containerEl, standaloneContext, size, globalCustomWavetables) {
+    bind(containerEl, standaloneContext, size, globalState) {
         const ctrl = window.ComponentModule_CustomWaveController;
         const uiLock = window.ComponentModule_CustomWaveInteractionsUILock;
         const fileLoader = window.ComponentModule_CustomWaveInteractionsFileLoader;
@@ -61,8 +61,8 @@ window.ComponentModule_CustomWaveInteractions = {
                     };
                 }
 
-                if (globalCustomWavetables) {
-                    globalCustomWavetables[nameKey] = wavetablePayload;
+                if (globalState.customWavetables) {
+                    globalState.customWavetables[nameKey] = wavetablePayload;
                 }
 
                 window.dispatchEvent(new CustomEvent('wavetable-registry-updated', { detail: { name: nameKey } }));
@@ -72,7 +72,7 @@ window.ComponentModule_CustomWaveInteractions = {
                 }
             };
 
-            if (globalCustomWavetables && globalCustomWavetables[nameKey]) {
+            if (globalState.customWavetables && globalState.customWavetables[nameKey]) {
                 const confirmPopup = me('#wavetableOverwriteConfirmPopup', containerEl);
                 const targetText = me('#overwriteTargetNameDisplay', containerEl);
                 
@@ -105,8 +105,8 @@ window.ComponentModule_CustomWaveInteractions = {
                     };
                 }
 
-                if (globalCustomWavetables) {
-                    globalCustomWavetables[nameKey] = wavetablePayload;
+                if (globalState.customWavetables) {
+                    globalState.customWavetables[nameKey] = wavetablePayload;
                 }
 
                 window.dispatchEvent(new CustomEvent('wavetable-registry-updated', { detail: { name: nameKey } }));
@@ -271,8 +271,8 @@ window.ComponentModule_CustomWaveInteractions = {
             const editorModal = containerEl.first || containerEl;
             editorModal.classList.remove('hidden');
 
-            if (targetNameKey && globalCustomWavetables && globalCustomWavetables[targetNameKey]) {
-                const record = globalCustomWavetables[targetNameKey];
+            if (targetNameKey && globalState.customWavetables && globalState.customWavetables[targetNameKey]) {
+                const record = globalState.customWavetables[targetNameKey];
                 if (elements.nameInput) elements.nameInput.value = targetNameKey;
 
                 standaloneContext.importMode = record.importMode || (record['editor-state'] ? 'spline' : 'file');
