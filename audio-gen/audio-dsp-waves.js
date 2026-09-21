@@ -44,14 +44,31 @@
     const pulseScaleCache = new Map();
     const camelScaleCache = new Map();
 
-    scope.AudioWorker.getWaveSample = function (type, angle, k, pow) {
+    scope.AudioWorker.getWaveSample = function (type, angle, k, pow, wavetableDataArray) {
         angle = angle % TWO_PI;
         angle = (angle + TWO_PI) % TWO_PI;
         const x = angle / TWO_PI;
 
         let val = 0;
 
-        if (type === 'sine') {
+        if (type === 'wavetable') {
+            if (wavetableDataArray && wavetableDataArray.length > 0) {
+                const len = wavetableDataArray.length;
+                const exactPosition = x * (len - 1);
+                
+                const idx1 = Math.floor(exactPosition);
+                const idx2 = (idx1 + 1) % len;
+                
+                const interpFactor = exactPosition - idx1;
+
+                const s1 = wavetableDataArray[idx1];
+                const s2 = wavetableDataArray[idx2];
+
+                val = s1 + (s2 - s1) * interpFactor;
+            } else {
+                val = 0.0;
+            }
+        } else if (type === 'sine') {
             const sinPart = Math.sin(angle);
 
             if (Math.abs(k) < 0.0001) {

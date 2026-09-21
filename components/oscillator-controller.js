@@ -39,8 +39,12 @@ window.ComponentModule_OscillatorController = {
         const existingKnob = knobGrid.querySelector('.knob-k-target');
         const p = appStateInstance.waveProfiles[gen.type];
 
-        if (!p || p.min === p.max) {
-            if (existingKnob) existingKnob.remove();
+        if (gen.type === 'wavetable' || !p || p.min === p.max) {
+            if (existingKnob) {
+                existingKnob.classList.add('opacity-25', 'pointer-events-none');
+                const numericInput = existingKnob.querySelector('.knob-numeric-input');
+                if (numericInput) numericInput.disabled = true;
+            }
             return;
         }
 
@@ -73,9 +77,74 @@ window.ComponentModule_OscillatorController = {
             btn.addEventListener('click', e => {
                 const wave = e.currentTarget.getAttribute('data-wave');
 
-                appStateInstance.changeWaveType(gen.id, wave);
+                if (wave === 'wavetable') {
+                    const savedKeys = Object.keys(appStateInstance.customWavetables || {});
+                    
+                    if (savedKeys.length === 0) {
+                        alert("No saved custom wavetables found. Please build and save one inside the Custom Wave Designer first!");
+                        return;
+                    }
+
+                    const modalSelectorOverlay = html`
+                        <div class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 backdrop-blur-sm p-4 font-mono text-xs">
+                            <div class="p-6 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl max-w-sm w-full space-y-4">
+                                <div class="text-cyan-400 font-bold uppercase tracking-wider text-center border-b border-zinc-800 pb-2">Select Target Wavetable</div>
+                                <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                                    ${savedKeys.map(k => {
+                                        const record = appStateInstance.customWavetables[k];
+                                        const typeTag = record['editor-state'] ? 'Spline' : 'Raw File';
+                                        return html`
+                                            <button class="w-full flex items-center justify-between p-2.5 bg-zinc-950 border border-zinc-800 hover:border-cyan-500 rounded text-left text-zinc-300 hover:text-zinc-100 font-bold transition-all cursor-pointer">
+                                                <span>📁 ${k}</span>
+                                                <span class="text-[9px] uppercase px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 text-zinc-500 rounded">
+                                                    ${typeTag}
+                                                </span>
+                                            </button>
+                                        `;
+                                    })}
+                                </div>
+                                <button class="w-full py-1.5 bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-700 rounded-lg cursor-pointer text-center uppercase text-[10px]">Cancel</button>
+                            </div>
+                        </div>
+                    `;
+
+                    document.body.appendChild(modalSelectorOverlay);
+
+                    const rowButtons = modalSelectorOverlay.querySelectorAll('div > button');
+                    rowButtons.forEach((btnElem, bIdx) => {
+                        btnElem.addEventListener('click', () => {
+                            const selectedName = savedKeys[bIdx];
+                            
+                            gen.type = 'wavetable';
+                            gen.selectedWavetable = selectedName;
+
+                            appStateInstance.validateAndSync(gen);
+
+                            this.setWaveTypeUI(cardEl, 'wavetable');
+                            this.updateDynamicKnobUI(cardEl, gen, appStateInstance);
+                            
+                            if (window.audio) window.audio.restartSimulation();
+                            modalSelectorOverlay.remove();
+                        });
+                    });
+
+                    modalSelectorOverlay.querySelector('button:last-child').addEventListener('click', () => {
+                        modalSelectorOverlay.remove();
+                    });
+
+                    return;
+                }
+
+                if (typeof appStateInstance.changeWaveType === 'function' && !btn.classList.contains('sub-wave-btn')) {
+                    appStateInstance.changeWaveType(gen.id, wave);
+                } else {
+                    gen.type = wave;
+                    appStateInstance.sync(gen.id);
+                }
+
                 this.setWaveTypeUI(cardEl, wave);
                 this.updateDynamicKnobUI(cardEl, gen, appStateInstance);
+                if (window.audio) window.audio.restartSimulation();
             });
         });
 

@@ -155,6 +155,22 @@ window.StateGeneratorsModule = {
                     g.k = Math.max(0, Math.min(100, parseFloat(g.k) || 0));
                 }
 
+                if (g.type === 'wavetable' && g.selectedWavetable && state.customWavetables[g.selectedWavetable]) {
+                    g.wavetableData = state.customWavetables[g.selectedWavetable].values;
+                } else {
+                    g.wavetableData = null;
+                }
+
+                if (g.subOscillators && g.subOscillators.length > 0) {
+                    g.subOscillators.forEach(sub => {
+                        if (sub.type === 'wavetable' && sub.selectedWavetable && state.customWavetables[sub.selectedWavetable]) {
+                            sub.wavetableData = state.customWavetables[sub.selectedWavetable].values;
+                        } else {
+                            sub.wavetableData = null;
+                        }
+                    });
+                }
+
                 state.sync(g.id);
             }
         };

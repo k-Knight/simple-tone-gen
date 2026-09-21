@@ -60,7 +60,7 @@ window.AudioDspModule = {
                 s.phaseAccumulator %= TWO_PI;
 
                 const compositeWaveSampleClosure = (type, targetInputAngle, kParam, powParam) => {
-                    let compositeResult = getWaveSample(type, targetInputAngle, kParam, powParam);
+                    let compositeResult = getWaveSample(type, targetInputAngle, kParam, powParam, gen.wavetableData);
 
                     if (gen.subOscillators && gen.subOscillators.length > 0) {
                         if (!s.subPhases) s.subPhases = {};
@@ -97,7 +97,7 @@ window.AudioDspModule = {
                                 adjustedSubAngle = s.subPhases[sub.id] + basePhaseAngleOffset + subPhaseAngleOffset;
                             }
 
-                            let subSample = getWaveSample(sub.type, adjustedSubAngle, sub.k, sub.pow);
+                            let subSample = getWaveSample(sub.type, adjustedSubAngle, sub.k, sub.pow, sub.wavetableData);
                             if (sub.isInverted) subSample = -subSample;
 
                             const subPanNormalized = (sub.pan + 1) / 2;
