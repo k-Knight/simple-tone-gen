@@ -17,6 +17,7 @@ window.AppStateModule = {
             masterVolume: 0.5,
             recordDuration: 2,
             isRecording: false,
+            customWavetables: {},
 
             init() {
                 window.addEventListener('record-finished', () => {
@@ -112,7 +113,7 @@ window.AppStateModule = {
                 any('#exportWavButton').on('click', () => this.triggerRecord());
                 any('#addOscillatorButton').on('click', () => this.addGenerator());
 
-                const hiddenModalNode = window.ComponentModule_CustomWaveCanvas.render();
+                const hiddenModalNode = window.ComponentModule_CustomWaveCanvas.render(this.customWavetables);
                 document.body.appendChild(hiddenModalNode);
 
                 const waveContainer = document.getElementById('customWaveformContainer');

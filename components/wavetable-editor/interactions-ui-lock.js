@@ -2,15 +2,17 @@ window.ComponentModule_CustomWaveInteractionsUILock = {
     refresh(standaloneContext, elements) {
         const isFile = standaloneContext.importMode === 'file';
         
-        if (elements.tensionSlider) elements.tensionSlider.disabled = isFile;
-        if (elements.tensionLabel) elements.tensionLabel.disabled = isFile;
-        if (elements.smoothToggle) elements.smoothToggle.disabled = isFile;
-        if (elements.endsToggle) elements.endsToggle.disabled = isFile;
-        if (elements.snapEdgesBtn) elements.snapEdgesBtn.disabled = isFile;
-        if (elements.sizeSlider) elements.sizeSlider.disabled = isFile;
-        if (elements.sizeLabel) elements.sizeLabel.disabled = isFile;
+        any([
+            elements.tensionSlider,
+            elements.tensionLabel,
+            elements.smoothToggle,
+            elements.endsToggle,
+            elements.snapEdgesBtn,
+            elements.sizeSlider,
+            elements.sizeLabel
+        ]).run(el => { if (el) el.disabled = isFile; });
 
-        const controls = [
+        const controls = any([
             elements.tensionSlider,
             elements.tensionLabel,
             elements.smoothToggleVisual,
@@ -18,31 +20,29 @@ window.ComponentModule_CustomWaveInteractionsUILock = {
             elements.snapEdgesBtn,
             elements.sizeSlider,
             elements.sizeLabel
-        ];
+        ]);
 
-        controls.forEach(el => {
-            if (!el) return;
-            if (isFile) {
-                el.classList.add('opacity-30', 'cursor-not-allowed');
-            } else {
-                el.classList.remove('opacity-30', 'cursor-not-allowed');
-            }
-        });
+        if (isFile) {
+            controls.classAdd('opacity-30', 'cursor-not-allowed').classRemove('opacity-100');
+        } else {
+            controls.classRemove('opacity-30', 'cursor-not-allowed');
+        }
 
-        const fileControlsWrap = document.getElementById('fileWindowControlsContainer');
+        const fileControlsWrap = me('#fileWindowControlsContainer');
         if (fileControlsWrap) {
-            if (!isFile) fileControlsWrap.classList.add('opacity-40', 'pointer-events-none', 'cursor-not-allowed');
-            else fileControlsWrap.classList.remove('opacity-40', 'pointer-events-none', 'cursor-not-allowed');
+            if (!isFile) {
+                me(fileControlsWrap).classAdd('opacity-40', 'pointer-events-none', 'cursor-not-allowed');
+            } else {
+                me(fileControlsWrap).classRemove('opacity-40', 'pointer-events-none', 'cursor-not-allowed');
+            }
         }
 
         if (elements.centerCanvas) {
-            const wrap = elements.centerCanvas.parentElement;
+            const wrap = me(elements.centerCanvas.parentElement);
             if (isFile) {
-                wrap.classList.remove('cursor-crosshair');
-                wrap.classList.add('cursor-not-allowed', 'opacity-85');
+                wrap.classRemove('cursor-crosshair').classAdd('cursor-not-allowed', 'opacity-85');
             } else {
-                wrap.classList.remove('cursor-not-allowed', 'opacity-85');
-                wrap.classList.add('cursor-crosshair');
+                wrap.classRemove('cursor-not-allowed', 'opacity-85').classAdd('cursor-crosshair');
             }
         }
     }

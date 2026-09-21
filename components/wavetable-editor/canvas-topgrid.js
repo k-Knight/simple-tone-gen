@@ -6,9 +6,14 @@ window.ComponentModule_CustomWaveCanvasTopGrid = {
                     <span class="text-zinc-400 font-bold uppercase text-[10px]">Wavetable Name</span>
                     <input id="wavetableNameInput" type="text" value="Custom Wavetable" class="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1 text-zinc-200 font-bold focus:outline-none focus:border-zinc-700" placeholder="Unnamed Patch..." />
 
-                    <button class="px-2 py-1.5 border border-emerald-600 hover:border-emerald-500 bg-emerald-950/40 hover:bg-emerald-950/80 text-emerald-400 hover:text-emerald-200 font-extrabold rounded-lg transition-all text-center cursor-pointer text-[10px] uppercase shadow-md shadow-emerald-950/50">
-                        ✓ Save
-                    </button>
+                    <div class="grid grid-cols-2 gap-2 w-full">
+                        <button id="saveWavetableBtn" class="px-2 py-1.5 border border-emerald-600 hover:border-emerald-500 bg-emerald-950/40 hover:bg-emerald-950/80 text-emerald-400 hover:text-emerald-200 font-extrabold rounded-lg transition-all text-center cursor-pointer text-[10px] uppercase shadow-md shadow-emerald-950/50">
+                            Save
+                        </button>
+                        <button id="openWavetableLibraryBtn" class="px-2 py-1.5 border border-amber-700 hover:border-amber-600 bg-amber-950/40 hover:bg-amber-950/80 text-amber-400 hover:text-amber-300 font-extrabold rounded-lg transition-all text-center cursor-pointer text-[10px] uppercase shadow-md shadow-amber-950/50">
+                            Edit
+                        </button>
+                    </div>
                 </div>
                 <div class="p-4 space-y-3 bg-zinc-950/10 flex flex-col justify-center">
                     <span class="text-zinc-400 font-bold uppercase text-[10px] block">File System Export / Import</span>
@@ -23,8 +28,7 @@ window.ComponentModule_CustomWaveCanvasTopGrid = {
                             </button>
                         </div>
                     </div>
-
-                    <div id="fileWindowControlsContainer" class="grid grid-cols-2 gap-3 border-t border-zinc-800/80 pt-2.5">
+                    <div id="fileWindowControlsContainer" class="grid grid-cols-3 gap-3 border-t border-zinc-800/80 pt-2.5">
                         <div class="space-y-1">
                             <span class="text-zinc-500 font-bold text-[9px] uppercase tracking-wider block">Start Offset (Samples)</span>
                             <div class="flex items-stretch bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
@@ -44,6 +48,12 @@ window.ComponentModule_CustomWaveCanvasTopGrid = {
                                     <button id="fileSizeDownBtn" class="h-1/2 flex items-center justify-center text-[8px] text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900 transition-colors select-none cursor-pointer">▼</button>
                                 </div>
                             </div>
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-zinc-500 font-bold text-[9px] uppercase tracking-wider block">&nbsp;</span>
+                            <button id="convertToSplineBtn" class="w-full mt-1 px-2 py-1.5 border border-pink-700 hover:border-pink-600 bg-pink-950/40 hover:bg-pink-950/80 text-pink-400 hover:text-pink-300 font-extrabold rounded-lg transition-all text-center cursor-pointer text-[10px] uppercase shadow-md shadow-pink-950/50">
+                                Convert to Spline
+                            </button>
                         </div>
                     </div>
                 </div>
