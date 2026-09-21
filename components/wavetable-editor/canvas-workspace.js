@@ -43,16 +43,16 @@ window.ComponentModule_CustomWaveCanvasWorkspace = {
 
                     <div class="grid grid-cols-2 gap-2 pt-3 border-t border-zinc-800/40">
                         <button id="snapEdgesBtn" class="px-2 py-1.5 border border-amber-950/80 hover:border-amber-700 bg-rose-950/20 hover:bg-amber-950/50 text-amber-400 hover:text-amber-300 rounded-lg font-bold transition-all text-center cursor-pointer text-[10px] uppercase shadow-sm">
-                            Zero Wave Edges
+                            Zero Edges
                         </button>
                         <button id="fullStretchBtn" class="px-2 py-1.5 border border-cyan-950/80 hover:border-cyan-700 bg-cyan-950/20 hover:bg-cyan-950/50 text-cyan-400 hover:text-cyan-300 rounded-lg font-bold transition-all text-center cursor-pointer text-[10px] uppercase shadow-sm">
-                            ↕ Min-Max Stretch
+                            Min - Max
                         </button>
                         <button id="clearWaveBtn" class="px-2 py-1.5 border border-rose-950/80 hover:border-rose-700 bg-rose-950/20 hover:bg-red-950/50 text-rose-400 hover:text-rose-300 rounded-lg font-bold transition-all text-center cursor-pointer text-[10px] uppercase shadow-sm">
-                            ⌫ Clear
+                            Clear
                         </button>
                         <button id="normalizeWaveBtn" class="px-2 py-1.5 border border-emerald-950/80 hover:border-emerald-700 bg-emerald-950/20 hover:bg-emerald-950/50 text-emerald-400 hover:text-emerald-300 rounded-lg font-bold transition-all text-center cursor-pointer text-[10px] uppercase shadow-sm">
-                            ⤢ Normalize
+                            Normalize
                         </button>
                     </div>
                 </div>

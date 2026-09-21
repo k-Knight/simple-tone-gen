@@ -1,15 +1,21 @@
+window.ComponentModule_CustomWaveDefaultState = () => ({
+    customWaveTable: new Float32Array(256),
+    splineTension: 0.0,
+    useSplineSmoothing: true,
+    lockEndsTogether: false,
+    importMode: 'spline',
+    rawFileBuffer: null,
+    fileStartOffset: 0,
+    fileWindowSize: 256,
+    splineNodes: [
+        { id: crypto.randomUUID(), x: 0.0, y: 0.01, isFixed: true },
+        { id: crypto.randomUUID(), x: 1.0, y: -0.01, isFixed: true }
+    ]
+});
+
 window.ComponentModule_CustomWaveCanvas = {
     render() {
-        const localContext = {
-            customWaveTable: new Float32Array(256),
-            splineTension: 0.0,
-            useSplineSmoothing: true,
-            lockEndsTogether: false,
-            splineNodes: [
-                { id: crypto.randomUUID(), x: 0.0, y: 0.01, isFixed: true },
-                { id: crypto.randomUUID(), x: 1.0, y: -0.01, isFixed: true }
-            ]
-        };
+        const localContext = window.ComponentModule_CustomWaveDefaultState();
 
         const viewSize = 300;
         const totalWidth = viewSize * 3;
