@@ -1,6 +1,6 @@
 window.Effect_TimeSpread = {
     type: 'timespread',
-    label: 'Stereo Haas Time-Spread Modulator',
+    label: 'Haas Time-Spread Modulator',
     theme: 'cyan',
 
     knobs: [

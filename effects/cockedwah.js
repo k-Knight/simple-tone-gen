@@ -1,6 +1,6 @@
 window.Effect_CockedWah = {
     type: 'cockedwah',
-    label: 'Frozen Resonant Cocked Wah',
+    label: 'Resonant Cocked Wah',
     theme: 'lime',
     knobs: [
         { key: 'centerFreq', label: 'Filter Position', min: 50, max: 4000, step: 1,    isLog: true,  unit: 'Hz' },

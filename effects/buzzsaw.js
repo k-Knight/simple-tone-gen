@@ -1,6 +1,6 @@
 window.Effect_Buzzsaw = {
     type: 'buzzsaw',
-    label: 'HM-2 Swedish Buzzsaw',
+    label: 'Buzzsaw Effect',
     theme: 'fuchsia',
     knobs: [
         { key: 'grind', label: 'Saw Teeth (Mid)', min: 1.0, max: 20.0, step: 0.1,  isLog: false, unit: 'Grnd' },

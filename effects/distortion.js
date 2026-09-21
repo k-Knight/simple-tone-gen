@@ -1,6 +1,6 @@
 window.Effect_Distortion = {
     type: 'distortion',
-    label: 'Hard-Clipping Distortion Box',
+    label: 'Hard-Clipping Distortion',
     theme: 'orange',
     knobs: [
         { key: 'gain',      label: 'Distortion Gain', min: 1.0, max: 10.0, step: 0.1,  isLog: false, unit: 'x' },
