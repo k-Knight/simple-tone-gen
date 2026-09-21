@@ -8,11 +8,11 @@ window.ComponentModule_Oscillator = {
             <div data-osc-id="${gen.id}" class="oscillator-card-root space-y-3 bg-zinc-900/30 p-4 border border-zinc-800/60 rounded-2xl relative transition-all">
                 <section class="p-6 bg-zinc-900/80 border border-zinc-800 rounded-xl shadow-lg">
                     <div class="flex flex-col gap-4 border-b border-zinc-800 pb-4 mb-6 w-full">
-                        
+
                         <div class="flex items-center justify-between gap-4 w-full">
                             <div class="flex items-center gap-4">
                                 <span class="text-xs font-mono px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400">OSC #${index + 1}</span>
-                                
+
                                 <label class="flex items-center gap-2 cursor-pointer text-xs text-zinc-400 select-none">
                                     <input type="checkbox" class="invert-checkbox sr-only" ${gen.isInverted ? 'checked' : ''} />
                                     <div class="invert-toggle-visual w-7 h-4 bg-zinc-800 rounded-xl relative border border-zinc-700 transition-all flex items-center px-0.5 data-[active=true]:bg-cyan-950/40 data-[active=true]:border-cyan-500/50"
@@ -22,7 +22,7 @@ window.ComponentModule_Oscillator = {
                                     </div>
                                     <span>Invert Wave</span>
                                 </label>
-                                
+
                                 <button class="mute-toggle-btn px-2.5 py-1 text-xs border border-zinc-700/40 rounded-lg uppercase tracking-wider font-bold transition-all flex items-center gap-1 cursor-pointer bg-zinc-950/40 text-zinc-500 data-[active=true]:bg-rose-950/80 data-[active=true]:text-rose-400 data-[active=true]:border-rose-800/60"
                                     data-active="${gen.isMuted ? 'true' : 'false'}">
                                     <div class="mute-dot w-1.5 h-1.5 rounded-full bg-zinc-700 transition-all data-[active=true]:bg-rose-400 data-[active=true]:animate-pulse"
@@ -30,7 +30,7 @@ window.ComponentModule_Oscillator = {
                                     <span>Mute</span>
                                 </button>
                             </div>
-                            
+
                             <button class="remove-osc-btn flex items-center justify-center p-1 w-8 h-8 text-zinc-500 hover:text-rose-400 bg-zinc-800/40 hover:bg-rose-800/40 border border-zinc-700/60 hover:border-rose-600 rounded-md transition-all cursor-pointer shadow-sm select-none" title="Remove Oscillator">
                                 ${icons.remove}
                             </button>
@@ -67,16 +67,12 @@ window.ComponentModule_Oscillator = {
 
                     <div class="mt-4 pt-4 border-t border-zinc-800/50 space-y-3">
                         <div class="flex flex-wrap items-center gap-2 w-full">
-                            <!-- Keep your existing Effect Add buttons intact here -->
-
-                            <!-- Add Sub Oscillator Button -->
                             <button class="add-sub-osc-btn px-3 py-1.5 border border-cyan-900 bg-cyan-950/30 hover:bg-cyan-900/40 text-cyan-400 rounded-xl text-xs font-bold uppercase transition-all tracking-wide cursor-pointer flex items-center gap-2">
                                 <div class="flex items-center justify-center">${icons.add}</div>
                                 <span>Add Sub-Oscillator</span>
                             </button>
                         </div>
 
-                        <!-- Sub Oscillators Content Container -->
                         <div class="sub-oscillators-mount-point space-y-2">
                             ${(gen.subOscillators || []).map((sub, sIdx) => window.ComponentModule_SubOscillator.render(gen, sub, sIdx, appStateInstance))}
                         </div>
@@ -122,7 +118,7 @@ window.ComponentModule_Oscillator = {
         if (addSubBtn) {
             addSubBtn.addEventListener('click', () => {
                 if (!gen.subOscillators) gen.subOscillators = [];
-                
+
                 const newSub = {
                     id: crypto.randomUUID(),
                     type: 'sine',
@@ -135,10 +131,10 @@ window.ComponentModule_Oscillator = {
                     isInverted: false,
                     isMuted: false
                 };
-                
+
                 gen.subOscillators.push(newSub);
                 appStateInstance.sync(gen.id);
-                
+
                 const mount = cardEl.querySelector('.sub-oscillators-mount-point');
                 if (mount) {
                     const subRow = window.ComponentModule_SubOscillator.render(gen, newSub, gen.subOscillators.length - 1, appStateInstance);
