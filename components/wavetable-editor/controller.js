@@ -53,7 +53,7 @@ window.ComponentModule_CustomWaveController = {
         const rect = nativeCanvas.getBoundingClientRect();
         const w = nativeCanvas.width;
         const h = nativeCanvas.height;
-        
+
         const mousePixelX = ((clientX - rect.left) / rect.width) * w;
         const mousePixelY = ((clientY - rect.top) / rect.height) * h;
 
@@ -67,7 +67,7 @@ window.ComponentModule_CustomWaveController = {
             const dx = nodePixelX - mousePixelX;
             const dy = nodePixelY - mousePixelY;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            
+
             if (dist < minDistancePixels) {
                 minDistancePixels = dist;
                 closest = node;
@@ -108,19 +108,19 @@ window.ComponentModule_CustomWaveController = {
             const start = state.fileStartOffset || 0;
             const end = start + (state.fileWindowSize || 256);
             let peak = 0.0;
-            
+
             for (let i = start; i < end; i++) {
                 if (i >= state.rawFileBuffer.length) break;
                 const absVal = Math.abs(state.rawFileBuffer[i]);
                 if (absVal > peak) peak = absVal;
             }
-            
+
             if (peak < 0.0001) return;
             const scale = 1.0 / peak;
-            
+
             for (let i = 0; i < state.rawFileBuffer.length; i++)
                 state.rawFileBuffer[i] = state.rawFileBuffer[i] * scale;
-            
+
             this.generateTableFromSplines(state);
             return;
         }
@@ -148,22 +148,22 @@ window.ComponentModule_CustomWaveController = {
             const end = start + (state.fileWindowSize || 256);
             let currentMin = Infinity;
             let currentMax = -Infinity;
-            
+
             for (let i = start; i < end; i++) {
                 if (i >= state.rawFileBuffer.length) break;
                 const val = state.rawFileBuffer[i];
                 if (val < currentMin) currentMin = val;
                 if (val > currentMax) currentMax = val;
             }
-            
+
             const range = currentMax - currentMin;
             if (range < 0.0001) return;
-            
+
             for (let i = 0; i < state.rawFileBuffer.length; i++) {
                 const normalizedVal = -1.0 + 2.0 * ((state.rawFileBuffer[i] - currentMin) / range);
                 state.rawFileBuffer[i] = normalizedVal;
             }
-            
+
             this.generateTableFromSplines(state);
             return;
         }
@@ -175,7 +175,7 @@ window.ComponentModule_CustomWaveController = {
         const tangents = math.calculateTangents(nodes, tension, state);
         const bounds = math.findTrueExtrema(nodes, tangents, tension);
         const range = bounds.max - bounds.min;
-        
+
         if (range < 0.0001) return;
         state.splineNodes.forEach(node => {
             const scaledY = -1.0 + 2.0 * ((node.y - bounds.min) / range);
@@ -186,8 +186,10 @@ window.ComponentModule_CustomWaveController = {
     snapEdgesToZero(state) {
         if (state.importMode === 'file') return;
         if (!state.splineNodes || state.splineNodes.length < 2) return;
-        const firstNode = state.splineNodes;
+
+        const firstNode = state.splineNodes[0];
         const lastNode = state.splineNodes[state.splineNodes.length - 1];
+
         if (firstNode) firstNode.y = 0.0;
         if (lastNode) lastNode.y = 0.0;
     }

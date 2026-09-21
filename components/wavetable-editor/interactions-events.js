@@ -62,26 +62,45 @@ window.ComponentModule_CustomWaveInteractionsEvents = {
         const nativeCenter = elements.centerCanvas;
         if (!nativeCenter) return;
 
-        nativeCenter.addEventListener('mousedown', e => {
+        const getEventCoordinates = (e) => {
+            if (e.touches && e.touches.length > 0) {
+                return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+            }
+            return { clientX: e.clientX, clientY: e.clientY };
+        };
+
+        const handleStartGesture = (e) => {
             if (standaloneContext.importMode === 'file' || e.button === 2) return;
-            const targetNode = ctrl.findClosestNode(e.clientX, e.clientY, standaloneContext, size, nativeCenter);
+            
+            const coords = getEventCoordinates(e);
+            const targetNode = ctrl.findClosestNode(coords.clientX, coords.clientY, standaloneContext, size, nativeCenter);
+            
             if (targetNode) {
                 standaloneContext.activeDragNode = targetNode;
                 ctrl.updateAllCanvases(standaloneContext, size, elements);
+                
+                if (e.cancelable) e.preventDefault();
             }
-        });
+        };
 
-        window.addEventListener('mousemove', e => {
+        nativeCenter.addEventListener('mousedown', handleStartGesture);
+        nativeCenter.addEventListener('touchstart', handleStartGesture, { passive: false });
+
+        const handleMoveGesture = (e) => {
             if (standaloneContext.importMode === 'file') return;
             const dragNode = standaloneContext.activeDragNode;
             if (!dragNode) return;
 
+            if (e.cancelable) e.preventDefault();
+
+            const coords = getEventCoordinates(e);
             const rect = nativeCenter.getBoundingClientRect();
+            
             if (!dragNode.isFixed) {
-                dragNode.x = Math.max(0.01, Math.min(0.99, (e.clientX - rect.left) / rect.width));
+                dragNode.x = Math.max(0.01, Math.min(0.99, (coords.clientX - rect.left) / rect.width));
             }
 
-            const pctY = (e.clientY - rect.top) / rect.height;
+            const pctY = (coords.clientY - rect.top) / rect.height;
             const new_y = Math.max(-1.0, Math.min(1.0, (0.5 - pctY) * (rect.height / (rect.height / 2 - 4))));
 
             if (dragNode.isFixed && standaloneContext.lockEndsTogether) {
@@ -92,14 +111,20 @@ window.ComponentModule_CustomWaveInteractionsEvents = {
             }
 
             ctrl.updateAllCanvases(standaloneContext, size, elements);
-        });
+        };
 
-        window.addEventListener('mouseup', () => {
+        window.addEventListener('mousemove', handleMoveGesture);
+        window.addEventListener('touchmove', handleMoveGesture, { passive: false });
+
+        const handleEndGesture = () => {
             if (standaloneContext.importMode === 'file' || !standaloneContext.activeDragNode) return;
             standaloneContext.activeDragNode = null;
             ctrl.updateAllCanvases(standaloneContext, size, elements);
             triggerReset();
-        });
+        };
+
+        window.addEventListener('mouseup', handleEndGesture);
+        window.addEventListener('touchend', handleEndGesture);
 
         nativeCenter.addEventListener('contextmenu', e => {
             e.preventDefault();
