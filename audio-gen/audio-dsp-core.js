@@ -88,12 +88,18 @@ window.AudioDspModule = {
                                 const derivedSubPhase = baselinePhaseAccumulatorReference * sub.multiplier;
                                 adjustedSubAngle = derivedSubPhase + basePhaseAngleOffset + subPhaseAngleOffset;
                             } else {
-                                if (s.subPhases[sub.id] === undefined) s.subPhases[sub.id] = 0;
+                                const clearSubFreq = freq * (parseFloat(sub.multiplier) || 1.0);
                                 
-                                if (i === 0) {
-                                    s.subPhases[sub.id] += (TWO_PI * subFreq) / sampleRate;
+                                if (i === 0 || s.subLastI?.[sub.id] !== i) {
+                                    if (s.subPhases[sub.id] === undefined) s.subPhases[sub.id] = 0;
+                                    
+                                    s.subPhases[sub.id] += (TWO_PI * clearSubFreq) / sampleRate;
                                     s.subPhases[sub.id] %= TWO_PI;
+                                    
+                                    if (!s.subLastI) s.subLastI = {};
+                                    s.subLastI[sub.id] = i;
                                 }
+                                
                                 adjustedSubAngle = s.subPhases[sub.id] + basePhaseAngleOffset + subPhaseAngleOffset;
                             }
 
