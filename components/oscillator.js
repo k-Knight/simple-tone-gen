@@ -100,9 +100,6 @@ window.ComponentModule_Oscillator = {
                                 `;
                             })}
                         </div>
-                        <div class="effects-display-mount-point space-y-3">
-                            ${gen.effects.map(fx => window.ComponentModule_EffectPanels.render(gen, fx, appStateInstance))}
-                        </div>
                     </div>
                 </section>
             </div>

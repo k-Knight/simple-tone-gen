@@ -3,16 +3,16 @@ window.AppStateModule = {
         const state = {
             generators: [],
             waveProfiles: {
-                sine:       { min: -0.999,    max: 0.999,  step: 0.001, default: 0 },
-                sawtooth:   { min: 0.5,  max: 100,  step: 0.001, default: 0.5 },
-                square:     { min: 0,    max: 1,  step: 0.001, default: 0.5 },
-                triangle:   { min: 0,    max: 100,  step: 0.001, default: 0 },
-                sharktooth: { min: 0,    max: 100,  step: 0.001, default: 0.5 },
-                scallop:    { min: 0,    max: 100,  step: 0.001, default: 0.5 },
-                sharkfin:   { min: 0,    max: 10,  step: 0.001, default: 0.3 },
-                camel:      { min: -3,    max: 3,  step: 0.001, default: 1 },
-                pulse:      { min: 0,    max: 100, step: 0.001, default: 5.0 },
-                wavetable:  { min: 0,    max: 0,   step: 0,     isCustom: true }
+                sine: { min: -0.999, max: 0.999, step: 0.001, default: 0 },
+                sawtooth: { min: 0.5, max: 100, step: 0.001, default: 0.5 },
+                square: { min: 0, max: 1, step: 0.001, default: 0.5 },
+                triangle: { min: 0, max: 100, step: 0.001, default: 0 },
+                sharktooth: { min: 0, max: 100, step: 0.001, default: 0.5 },
+                scallop: { min: 0, max: 100, step: 0.001, default: 0.5 },
+                sharkfin: { min: 0, max: 10, step: 0.001, default: 0.3 },
+                camel: { min: -3, max: 3, step: 0.001, default: 1 },
+                pulse: { min: 0, max: 100, step: 0.001, default: 5.0 },
+                wavetable: { min: 0, max: 0, step: 0, isCustom: true }
             },
             get waveTypes() { return Object.keys(this.waveProfiles); },
             masterVolume: 0.5,
@@ -215,7 +215,7 @@ window.AppStateModule = {
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(workspaceSnapshot, null, 2));
                 const downloadAnchor = document.createElement('a');
                 downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", `synth-workspace-${new Date().toISOString().slice(0,10)}.json`);
+                downloadAnchor.setAttribute("download", `synth-workspace-${new Date().toISOString().slice(0, 10)}.json`);
                 downloadAnchor.click();
                 downloadAnchor.remove();
                 console.log("Synth workspace state snapshot exported cleanly.");
@@ -225,17 +225,21 @@ window.AppStateModule = {
                 try {
                     const parsed = JSON.parse(jsonTextContent);
                     if (!parsed || !parsed.generators || !parsed.customWavetables) {
-                        throw new Error("Invalid workspace payload structural format configuration.");
+                        throw new Error("Invalid workspace payload structure.");
                     }
 
                     audioInstance.restartSimulation();
-                    
+                    audioInstance.generators.clear();
+                    audioInstance.smoothState.clear();
+
+                    this.generators = [];
+
                     const oscList = document.getElementById('oscillatorListContainer');
                     if (oscList) oscList.innerHTML = '';
 
                     this.masterVolume = parsed.masterVolume ?? 0.5;
                     this.recordDuration = parsed.recordDuration ?? 2;
-                    
+
                     const volumeSlider = document.getElementById('masterVolumeSlider');
                     const volumeLabel = document.getElementById('masterVolumeLabel');
                     const durationIn = document.getElementById('recDurationInput');
@@ -244,14 +248,15 @@ window.AppStateModule = {
                     if (durationIn) durationIn.value = this.recordDuration;
 
                     this.customWavetables = parsed.customWavetables || {};
-                    this.generators = parsed.generators || [];
 
-                    if (this.generators.length > 0) {
+                    const loadedGens = parsed.generators || [];
+
+                    if (loadedGens.length > 0) {
                         any('#emptyStatePlaceholder').classAdd('hidden');
-                        
-                        this.generators.forEach((gen, idx) => {
-                            audioInstance.addGenerator(gen.id);
 
+                        loadedGens.forEach((gen, idx) => {
+                            this.generators.push(gen);
+                            audioInstance.addGenerator(gen.id);
                             this.validateAndSync(gen);
 
                             if (oscList) {
@@ -264,14 +269,15 @@ window.AppStateModule = {
                     }
 
                     window.dispatchEvent(new CustomEvent('wavetable-registry-updated', { detail: { name: null } }));
-                    
+
                     audioInstance.restartSimulation();
                     console.log("Synth workspace state snapshot successfully reloaded and calibrated.");
                 } catch (err) {
                     console.error("Workspace loading failure:", err);
                     alert("Error parsing workspace file. Make sure it is a valid synthesizer configuration JSON document.");
                 }
-            }
+            },
+
         };
 
         Object.assign(state, window.StateGeneratorsModule.getActions(state, audioInstance));
